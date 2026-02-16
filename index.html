@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TUV Training Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e3a8a; /* Navy */
+            --secondary: #64748b; /* Grey */
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            color: #334155;
+        }
+
+        /* Layout */
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { 
+            padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+            background: #e2e8f0; font-weight: 600; transition: 0.3s;
+        }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        /* Search Section */
+        .search-container { position: relative; margin-bottom: 30px; }
+        #searchInput {
+            width: 100%; padding: 15px 20px; border-radius: 12px; border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-size: 16px; outline: none;
+        }
+        #suggestions {
+            position: absolute; width: 100%; background: white; border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 10; max-height: 200px; overflow-y: auto;
+        }
+        .suggestion-item { padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+        .suggestion-item:hover { background: #f1f5f9; }
+
+        /* Dashboard Cards */
+        .dashboard-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+            gap: 20px; margin-top: 20px; 
+        }
+        .card {
+            background: var(--card-bg); padding: 20px; border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;
+        }
+        .card-label { font-size: 12px; color: var(--secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .card-value { font-size: 18px; font-weight: 700; color: var(--primary); }
+        
+        /* Status Badge */
+        .status-badge { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 20px; font-weight: 600; }
+        .valid { background: #dcfce7; color: #166534; }
+        .expiring { background: #fef3c7; color: #92400e; }
+        .expired { background: #fee2e2; color: #991b1b; }
+
+        /* Update Form */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input, select, textarea { 
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box;
+        }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn { padding: 12px 25px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; }
+        .btn-save { background: var(--primary); color: white; }
+        .btn-clear { background: #94a3b8; color: white; }
+
+        footer { text-align: center; margin-top: 50px; padding: 20px; color: var(--secondary); font-size: 14px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 style="color: var(--primary);">TUV Training Portal</h1>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="showPage('dashboard')">Dashboard</button>
+        <button class="tab-btn" onclick="showPage('update')">Update Data</button>
+    </div>
+
+    <div id="page-dashboard">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search by Name (Col B) or ID (Col C)..." oninput="handleSearch()">
+            <div id="suggestions"></div>
+        </div>
+
+        <div class="dashboard-grid" id="dashboardContent">
+            <div class="card" style="grid-column: 1 / -1; text-align: center;">
+                <p>Please search and select an employee to view details.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-update" class="hidden">
+        <div class="card">
+            <h3>Update Employee Record</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Selected Employee</label>
+                    <input type="text" id="upd-name" disabled>
+                </div>
+                <div class="form-group">
+                    <label>Issue Date (Col F)</label>
+                    <input type="date" id="upd-issue">
+                </div>
+                <div class="form-group">
+                    <label>Expiry Date (Col G)</label>
+                    <input type="date" id="upd-expiry">
+                </div>
+                <div class="form-group">
+                    <label>Renewal Request Date (Col I)</label>
+                    <input type="date" id="upd-renewal">
+                </div>
+                <div class="form-group">
+                    <label>Remarks (Col L)</label>
+                    <textarea id="upd-remarks"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Physical Copy Received (Col M)</label>
+                    <select id="upd-physical">
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-save" onclick="saveData()">Update Record</button>
+                <button class="btn btn-clear" onclick="clearForm()">Clear</button>
+            </div>
+            <p style="font-size: 12px; color: orange; margin-top: 10px;">Note: GitHub Pages is static. For real database updates, integrate with Google Sheets API or a backend.</p>
+        </div>
+    </div>
+
+    <footer>
+        Created by <strong>Mohammad Javed Shaikh</strong> | TUV Training Log v1.0
+    </footer>
+</div>
+
+<script>
+    // Mock Data - In production, you'll fetch your Excel/JSON file
+    let activeData = [
+        { B: "John Doe", C: "TUV-001", D: "Operator", E: "Safety", F: "2023-01-01", G: "2024-05-15", H: "TUV Nord", I: "", J: "Cert_01", K: "Active", L: "N/A", M: "Yes" },
+        { B: "Jane Smith", C: "TUV-002", D: "Supervisor", E: "Lifting", F: "2023-05-01", G: "2026-12-31", H: "Bureau Veritas", I: "", J: "Cert_02", K: "Active", L: "Good", M: "No" }
+    ];
+
+    let selectedRow = null;
+
+    function handleSearch() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const suggBox = document.getElementById('suggestions');
+        suggBox.innerHTML = '';
+
+        if(query.length < 1) return;
+
+        const filtered = activeData.filter(row => 
+            row.B.toLowerCase().includes(query) || row.C.toLowerCase().includes(query)
+        );
+
+        filtered.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerText = `${item.B} | ${item.C}`;
+            div.onclick = () => selectEmployee(item);
+            suggBox.appendChild(div);
+        });
+    }
+
+    function selectEmployee(item) {
+        selectedRow = item;
+        document.getElementById('suggestions').innerHTML = '';
+        document.getElementById('searchInput').value = `${item.B} (${item.C})`;
+        renderDashboard(item);
+        
+        // Prep update form
+        document.getElementById('upd-name').value = item.B;
+        document.getElementById('upd-issue').value = item.F;
+        document.getElementById('upd-expiry').value = item.G;
+        document.getElementById('upd-remarks').value = item.L;
+    }
+
+    function calculateStatus(expiryDate) {
+        const today = new Date();
+        const exp = new Date(expiryDate);
+        const diffTime = exp - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        let status = { text: "Valid", class: "valid", days: diffDays };
+        if (diffDays <= 0) {
+            status = { text: "Expired", class: "expired", days: diffDays };
+        } else if (diffDays <= 60) {
+            status = { text: "Expiring Soon", class: "expiring", days: diffDays };
+        }
+        return status;
+    }
+
+    function renderDashboard(data) {
+        const status = calculateStatus(data.G);
+        const container = document.getElementById('dashboardContent');
+        
+        container.innerHTML = `
+            <div class="card"><div class="card-label">Position</div><div class="card-value">${data.D}</div></div>
+            <div class="card"><div class="card-label">Type</div><div class="card-value">${data.E}</div></div>
+            <div class="card"><div class="card-label">Issue Date</div><div class="card-value">${data.F}</div></div>
+            <div class="card"><div class="card-label">Expiry Date</div><div class="card-value">${data.G}</div></div>
+            <div class="card"><div class="card-label">Remaining Days</div><div class="card-value">${status.days}</div></div>
+            <div class="card">
+                <div class="card-label">Status</div>
+                <div class="status-badge ${status.class}">${status.text}</div>
+            </div>
+            <div class="card"><div class="card-label">Institute</div><div class="card-value">${data.H}</div></div>
+            <div class="card"><div class="card-label">Renewal Date</div><div class="card-value">${data.I || '---'}</div></div>
+            <div class="card"><div class="card-label">Certificate</div><div class="card-value">${data.J}</div></div>
+            <div class="card"><div class="card-label">Emp Status</div><div class="card-value">${data.K}</div></div>
+            <div class="card" style="grid-column: span 2;"><div class="card-label">Remarks</div><div class="card-value">${data.L}</div></div>
+            <div class="card"><div class="card-label">Physical Copy</div><div class="card-value">${data.M}</div></div>
+        `;
+    }
+
+    function showPage(page) {
+        document.getElementById('page-dashboard').classList.toggle('hidden', page !== 'dashboard');
+        document.getElementById('page-update').classList.toggle('hidden', page !== 'update');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.innerText.toLowerCase().includes(page)));
+    }
+
+    function saveData() {
+        if(!selectedRow) return alert("Select an employee first!");
+        alert("Success: Local state updated! To save permanently to Excel via GitHub, you need to use a backend or Google Sheets API.");
+    }
+
+    function clearForm() {
+        document.getElementById('upd-issue').value = '';
+        document.getElementById('upd-expiry').value = '';
+        document.getElementById('upd-remarks').value = '';
+    }
+</script>
+
+</body>
+</html>
