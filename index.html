@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TUV Training record</title>
 
+<!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 
+<!-- Styles -->
 <style>
     body {
         font-family: 'Roboto', sans-serif;
@@ -20,15 +22,10 @@
         margin: 20px auto;
         padding: 10px;
     }
-
-    /* MINOR CHANGE: Bigger, Bold, Blue Header */
     h1 {
         text-align: center;
-        color: #1e3a8a; 
-        font-size: 42px; /* Increased size */
-        font-weight: 900; /* Extra Bold */
+        color: #1e3a8a;
     }
-
     .search-box {
         width: 100%;
         max-width: 400px;
@@ -62,7 +59,7 @@
         background: #f0f0f0;
     }
 
-    /* Cards - SAME LOOK */
+    /* Cards */
     .dashboard {
         display: flex;
         flex-wrap: wrap;
@@ -96,28 +93,21 @@
         margin-right: 5px;
     }
 
-    /* PAGE 2 Table - MINOR CHANGE: Fit to Size */
-    #page2 {
-        width: 100%;
-        overflow-x: auto; /* Ensures it fits the screen width */
-    }
+    /* Page 2 Table */
     #page2 table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
-        table-layout: auto; /* Content determines width */
     }
     #page2 th, #page2 td {
         border: 1px solid #ccc;
         padding: 10px;
         text-align: center;
-        font-size: 13px; /* Slightly smaller to fit better */
     }
     #page2 th {
         background: #1e3a8a;
         color: #fff;
     }
-
     .nav-buttons {
         display: flex;
         justify-content: center;
@@ -147,15 +137,18 @@
         <button onclick="showPage(2)">Full Data</button>
     </div>
 
+    <!-- PAGE 1 -->
     <div id="page1">
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="Search Employee Name or ID">
             <div class="suggestions" id="suggestions"></div>
         </div>
         <div class="dashboard" id="dashboardCards">
-            </div>
+            <!-- Cards will populate here -->
+        </div>
     </div>
 
+    <!-- PAGE 2 -->
     <div id="page2" style="display:none;">
         <table id="fullDataTable">
             <thead>
@@ -166,13 +159,15 @@
     </div>
 </div>
 
+<!-- XLSX.js Library -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-const excelUrl = 'https://raw.githubusercontent.com/YourUsername/YourRepo/main/TUV_Training.xlsx'; 
+const excelUrl = 'https://raw.githubusercontent.com/YourUsername/YourRepo/main/TUV_Training.xlsx'; // <-- Replace with your raw GitHub URL
 let data = [];
 let combinedSearch = [];
 
+// Fetch Excel from GitHub
 fetch(excelUrl)
     .then(res => res.arrayBuffer())
     .then(ab => {
@@ -184,6 +179,7 @@ fetch(excelUrl)
         populateFullTable();
     });
 
+// Combine Column B + C for search
 function prepareSearch() {
     combinedSearch = data.map((row, index) => ({
         display: `${row['B']} - ${row['C']}`,
@@ -191,6 +187,7 @@ function prepareSearch() {
     }));
 }
 
+// Live search
 const searchInput = document.getElementById('searchInput');
 const suggestions = document.getElementById('suggestions');
 searchInput.addEventListener('input', () => {
@@ -207,12 +204,14 @@ searchInput.addEventListener('input', () => {
     }
 });
 
+// When suggestion is selected
 function selectSuggestion(idx) {
     searchInput.value = combinedSearch[idx].display;
     suggestions.innerHTML = '';
     populateCards(data[idx]);
 }
 
+// Populate cards
 function populateCards(row) {
     const dashboard = document.getElementById('dashboardCards');
     dashboard.innerHTML = '';
@@ -250,6 +249,7 @@ function populateCards(row) {
     });
 }
 
+// Populate full table for Page 2
 function populateFullTable() {
     if(!data.length) return;
     const tableHead = document.getElementById('tableHead');
@@ -257,12 +257,14 @@ function populateFullTable() {
     tableHead.innerHTML = '';
     tableBody.innerHTML = '';
 
+    // Header
     Object.keys(data[0]).forEach(k => {
         const th = document.createElement('th');
         th.textContent = k;
         tableHead.appendChild(th);
     });
 
+    // Rows
     data.forEach(row => {
         const tr = document.createElement('tr');
         Object.keys(row).forEach(k => {
@@ -274,6 +276,7 @@ function populateFullTable() {
     });
 }
 
+// Page toggle
 function showPage(num){
     document.getElementById('page1').style.display = (num===1)?'block':'none';
     document.getElementById('page2').style.display = (num===2)?'block':'none';
