@@ -3,186 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TUV Training Monitor | Professional Dashboard</title>
+    <title>TUV Dashboard | High Performance</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .rounded-card { border-radius: 1.25rem; }
-        .soft-shadow { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); }
-        .navy-gradient { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
-        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
-        /* Smooth fade-in animation */
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .rounded-card { border-radius: 1rem; }
+        .soft-shadow { box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .navy-bg { background-color: #0f172a; }
+        #loader { display: flex; position: fixed; inset: 0; background: white; z-index: 100; align-items: center; justify-content: center; transition: opacity 0.5s; }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="bg-slate-50 font-sans">
 
-    <div class="max-w-6xl mx-auto flex gap-4 mb-8">
-        <button onclick="togglePage(1)" id="tab1" class="px-8 py-3 navy-gradient text-white rounded-full font-bold soft-shadow transition-all hover:scale-105">
-            <i class="fa fa-chart-pie mr-2"></i> Dashboard
-        </button>
-        <button onclick="togglePage(2)" id="tab2" class="px-8 py-3 bg-white text-slate-600 rounded-full font-bold soft-shadow border border-gray-100 hover:bg-gray-50">
-            <i class="fa fa-list mr-2"></i> Full Data Log
-        </button>
+    <div id="loader">
+        <div class="text-center">
+            <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600 mb-4"></i>
+            <p class="text-slate-500 font-medium">Processing Training Log...</p>
+        </div>
     </div>
 
-    <div id="page1" class="max-w-6xl mx-auto">
-        <div class="mb-12 relative">
-            <div class="relative flex items-center">
-                <i class="fa fa-search absolute left-6 text-slate-400 text-xl"></i>
-                <input type="text" id="searchInput" oninput="liveSearch()" placeholder="Search Name or Employee ID..." 
-                    class="w-full pl-16 pr-6 py-5 rounded-2xl border-none soft-shadow text-lg focus:ring-2 focus:ring-blue-500 outline-none">
+    <div class="max-w-6xl mx-auto p-6">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold text-slate-800">TUV Training Card Monitor</h1>
+            <div class="flex gap-2">
+                <button onclick="showPage(1)" class="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold">Dashboard</button>
+                <button onclick="showPage(2)" class="px-5 py-2 bg-white text-slate-600 border rounded-lg text-sm font-semibold">All Data</button>
             </div>
-            <div id="suggestions" class="absolute w-full mt-2 bg-white rounded-2xl shadow-2xl z-50 hidden max-h-60 overflow-y-auto border border-gray-100"></div>
         </div>
 
-        <div id="dashboardContent" class="hidden fade-in">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="cardGrid">
+        <div id="page1">
+            <div class="relative mb-8">
+                <input type="text" id="search" onkeyup="fastSearch()" placeholder="Search Name or Employee ID..." 
+                    class="w-full p-4 pl-12 rounded-xl border-0 shadow-sm outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500">
+                <i class="fa fa-search absolute left-4 top-5 text-slate-400"></i>
+                <div id="results" class="absolute w-full mt-1 bg-white shadow-xl rounded-xl z-50 hidden max-h-60 overflow-auto border"></div>
+            </div>
+
+            <div id="dashGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="col-span-full text-center py-20 text-slate-400 border-2 border-dashed rounded-2xl">
+                    <i class="fa fa-id-card text-4xl mb-3"></i>
+                    <p>Search for an employee to view card details</p>
                 </div>
-        </div>
-    </div>
-
-    <div id="page2" class="max-w-7xl mx-auto hidden">
-        <div class="bg-white rounded-3xl soft-shadow overflow-hidden border border-gray-100">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left" id="dataTable">
-                    <thead class="navy-gradient text-white">
-                        <tr id="tableHeader"></tr>
-                    </thead>
-                    <tbody id="tableBody" class="text-slate-600 divide-y divide-gray-100"></tbody>
-                </table>
             </div>
         </div>
-    </div>
 
-    <footer class="max-w-6xl mx-auto mt-16 py-8 border-t border-gray-200 text-center text-slate-400 font-medium">
-        Designed & Developed by <span class="text-slate-800 font-bold">Mohammad Javed Shaikh</span>
-    </footer>
+        <div id="page2" class="hidden">
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden border">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm" id="mainTable"></table>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 py-6 border-t text-center text-slate-400 text-sm">
+            Created by <b>Mohammad Javed Shaikh</b>
+        </footer>
+    </div>
 
     <script>
-        let rawExcelData = [];
-        let headers = [];
-        let employeeData = [];
+        let db = [];
+        const fileName = "TUV Training Log.xlsm";
 
-        async function fetchExcel() {
-            // Updated to handle both .xlsx and .xlsm - adjust name as needed
-            const fileName = "TUV Training Log.xlsm"; 
+        async function init() {
             try {
-                const response = await fetch(fileName);
-                const arrayBuffer = await response.arrayBuffer();
-                const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const res = await fetch(fileName);
+                const buf = await res.arrayBuffer();
+                const wb = XLSX.read(buf, {type:'array', cellDates: true});
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:""});
                 
-                // Read all data including the merged header
-                rawExcelData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-                // HANDLE MERGED ROW 1: 
-                // We assume Index 0 is the merged title, Index 1 is the actual headers.
-                headers = rawExcelData[1]; 
-                employeeData = rawExcelData.slice(2); // Actual records start from row 3
-
-                renderFullTable();
-            } catch (err) {
-                console.error("Error:", err);
-                alert("Error: Ensure 'TUV Training Log.xlsm' is in the root folder.");
+                // Optimized: Skip merged Row 1, use Row 2 for Headers
+                db = rows.slice(2); 
+                renderTable(rows.slice(1)); // Page 2 starts from Header row
+                
+                document.getElementById('loader').style.opacity = '0';
+                setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+            } catch (e) {
+                alert("Error: File not found. Check if name is 'TUV Training Log.xlsm'");
             }
         }
 
-        function liveSearch() {
-            const val = document.getElementById('searchInput').value.toLowerCase();
-            const suggBox = document.getElementById('suggestions');
-            if(val.length < 1) { suggBox.classList.add('hidden'); return; }
+        function fastSearch() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const resBox = document.getElementById('results');
+            if (query.length < 2) { resBox.classList.add('hidden'); return; }
 
-            // Search in Column B (Index 1) and Column C (Index 2)
-            const matches = employeeData.filter(r => 
-                (r[1] && String(r[1]).toLowerCase().includes(val)) || 
-                (r[2] && String(r[2]).toLowerCase().includes(val))
-            );
+            const filtered = db.filter(r => 
+                String(r[1]).toLowerCase().includes(query) || 
+                String(r[2]).toLowerCase().includes(query)
+            ).slice(0, 10); // Limit results for speed
 
-            suggBox.innerHTML = matches.map(r => `
-                <div onclick="selectUser('${r[1]}')" class="p-4 hover:bg-slate-50 cursor-pointer border-b border-gray-50 flex justify-between">
+            resBox.innerHTML = filtered.map(r => `
+                <div onclick="renderDash('${r[1]}')" class="p-3 hover:bg-blue-50 cursor-pointer border-b flex justify-between">
                     <span class="font-bold text-slate-700">${r[2]}</span>
-                    <span class="text-slate-400 text-sm">ID: ${r[1]}</span>
+                    <span class="text-xs text-slate-400">ID: ${r[1]}</span>
                 </div>
             `).join('');
-            suggBox.classList.toggle('hidden', matches.length === 0);
+            resBox.classList.remove('hidden');
         }
 
-        function selectUser(id) {
-            const row = employeeData.find(r => String(r[1]) === String(id));
-            document.getElementById('suggestions').classList.add('hidden');
-            document.getElementById('searchInput').value = row[2];
-            displayDashboard(row);
-        }
-
-        function displayDashboard(row) {
-            document.getElementById('dashboardContent').classList.remove('hidden');
-            const grid = document.getElementById('cardGrid');
-
-            // Expiry Logic (Column G is Index 6)
-            const expiryDate = new Date(row[6]);
-            const today = new Date();
-            const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+        function renderDash(id) {
+            const r = db.find(x => String(x[1]) === String(id));
+            document.getElementById('results').classList.add('hidden');
             
-            let status = { text: 'VALID', color: 'text-green-600', icon: 'fa-circle-check', bg: 'bg-green-100' };
-            if (diffDays <= 0) status = { text: 'EXPIRED', color: 'text-red-600', icon: 'fa-circle-xmark', bg: 'bg-red-100' };
-            else if (diffDays <= 30) status = { text: 'EXPIRING SOON', color: 'text-orange-600', icon: 'fa-triangle-exclamation', bg: 'bg-orange-100' };
+            const exp = new Date(r[6]);
+            const days = Math.ceil((exp - new Date()) / 86400000);
+            let s = {t:'VALID', c:'text-green-600', i:'fa-check-circle', b:'bg-green-50'};
+            if(days <= 0) s = {t:'EXPIRED', c:'text-red-600', i:'fa-times-circle', b:'bg-red-50'};
+            else if(days <= 30) s = {t:'EXPIRING SOON', c:'text-orange-600', i:'fa-exclamation-triangle', b:'bg-orange-50'};
 
-            // Field mapping based on your requirements
-            const fields = [
-                { label: 'Position', val: row[3], icon: 'fa-id-badge' },
-                { label: 'Type', val: row[4], icon: 'fa-tag' },
-                { label: 'Issue Date', val: formatDate(row[5]), icon: 'fa-calendar-check' },
-                { label: 'Expiry Date', val: formatDate(row[6]), icon: 'fa-calendar-times' },
-                { label: 'Remaining Days', val: diffDays, icon: 'fa-hourglass-half' },
-                { label: 'Status', val: status.text, status: true },
-                { label: 'Institute', val: row[7], icon: 'fa-university' },
-                { label: 'Renewal Req.', val: formatDate(row[8]), icon: 'fa-rotate' },
-                { label: 'Certificate', val: row[9], icon: 'fa-file-shield' },
-                { label: 'Emp Status', val: row[10], icon: 'fa-user-gear' },
-                { label: 'Remarks', val: row[11] || 'None', icon: 'fa-comment' },
-                { label: 'Physical Copy', val: row[12], icon: 'fa-copy' }
+            const map = [
+                {l:'Position', v:r[3], i:'fa-user-tag'}, {l:'Type', v:r[4], i:'fa-layer-group'},
+                {l:'Issue Date', v:fmt(r[5]), i:'fa-calendar'}, {l:'Expiry Date', v:fmt(r[6]), i:'fa-calendar-times'},
+                {l:'Days Left', v:days, i:'fa-hourglass-half'}, {l:'Status', v:s.t, color:s.c, icon:s.i, bg:s.b},
+                {l:'Institute', v:r[7], i:'fa-school'}, {l:'Renewal Req', v:fmt(r[8]), i:'fa-sync'},
+                {l:'Certificate', v:r[9], i:'fa-certificate'}, {l:'Emp Status', v:r[10], i:'fa-briefcase'},
+                {l:'Remarks', v:r[11] || 'N/A', i:'fa-comment'}, {l:'Physical Copy', v:r[12], i:'fa-folder-open'}
             ];
 
-            grid.innerHTML = fields.map(f => `
-                <div class="bg-white p-5 rounded-card soft-shadow border border-gray-50">
-                    <div class="flex items-center space-x-3 mb-3">
-                        <div class="w-10 h-10 rounded-lg ${f.status ? status.bg : 'bg-slate-100'} flex items-center justify-center text-lg">
-                            <i class="fa ${f.status ? status.icon : f.icon} ${f.status ? status.color : 'text-slate-500'}"></i>
-                        </div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${f.label}</p>
+            document.getElementById('dashGrid').innerHTML = map.map(f => `
+                <div class="bg-white p-4 rounded-xl border flex items-center gap-4">
+                    <div class="w-10 h-10 ${f.bg || 'bg-slate-100'} rounded-lg flex items-center justify-center ${f.color || 'text-slate-400'}">
+                        <i class="fa ${f.icon}"></i>
                     </div>
-                    <p class="text-lg font-bold ${f.status ? status.color : 'text-slate-800'}">${f.val || 'N/A'}</p>
+                    <div>
+                        <p class="text-[10px] uppercase font-bold text-slate-400 tracking-tighter">${f.label}</p>
+                        <p class="font-bold ${f.color || 'text-slate-700'}">${f.v || 'N/A'}</p>
+                    </div>
                 </div>
             `).join('');
         }
 
-        function formatDate(date) {
-            if (!date) return 'N/A';
-            const d = new Date(date);
-            return isNaN(d) ? date : d.toLocaleDateString('en-GB');
-        }
+        function fmt(d) { if(!d) return 'N/A'; const date = new Date(d); return isNaN(date) ? d : date.toLocaleDateString('en-GB'); }
 
-        function renderFullTable() {
-            const head = document.getElementById('tableHeader');
-            const body = document.getElementById('tableBody');
-            // Using Index 1 as headers
-            head.innerHTML = headers.map(h => `<th class="p-4 font-semibold text-xs uppercase tracking-wider">${h || ''}</th>`).join('');
-            body.innerHTML = employeeData.map(row => `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    ${row.map(cell => `<td class="p-4 text-xs border-b border-gray-50">${cell || ''}</td>`).join('')}
+        function renderTable(data) {
+            const table = document.getElementById('mainTable');
+            table.innerHTML = data.map((r, i) => `
+                <tr class="${i===0 ? 'bg-slate-800 text-white font-bold' : 'border-b hover:bg-slate-50'}">
+                    ${r.map(c => `<td class="p-3 border-r">${c}</td>`).join('')}
                 </tr>
             `).join('');
         }
 
-        function togglePage(num) {
-            document.getElementById('page1').classList.toggle('hidden', num !== 1);
-            document.getElementById('page2').classList.toggle('hidden', num !== 2);
+        function showPage(p) {
+            document.getElementById('page1').classList.toggle('hidden', p !== 1);
+            document.getElementById('page2').classList.toggle('hidden', p !== 2);
         }
 
-        window.onload = fetchExcel;
+        init();
     </script>
 </body>
 </html>
