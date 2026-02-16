@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TUV Training Portal | Universal</title>
+    <title>TUV Training Portal | Professional Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -12,131 +12,155 @@
     <style>
         :root { --glass: rgba(30, 41, 59, 0.7); --border: rgba(255, 255, 255, 0.1); }
         body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; overflow-x: hidden; }
-        .glass-card { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; transition: 0.3s ease; }
-        .nav-active { background: #3b82f6; color: white; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+        
+        /* Modern UI Glassmorphism */
+        .glass-card { 
+            background: var(--glass); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid var(--border); 
+            border-radius: 1.5rem; 
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, border-color 0.3s ease; 
+        }
+        .glass-card:hover { border-color: rgba(59, 130, 246, 0.4); }
+
+        .nav-active { 
+            background: #3b82f6; 
+            color: white; 
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); 
+        }
+
+        /* Status Colors */
         .status-valid { color: #4ade80; border: 1px solid #4ade80; background: rgba(74, 222, 128, 0.1); }
         .status-warning { color: #fbbf24; border: 1px solid #fbbf24; background: rgba(251, 191, 36, 0.1); }
         .status-expired { color: #f87171; border: 1px solid #f87171; background: rgba(248, 113, 113, 0.1); }
         
-        /* Table Styling */
+        /* Professional Table */
         .data-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
-        .data-table th { padding: 12px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: #64748b; }
+        .data-table th { padding: 12px; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; }
         .data-table tr { background: rgba(30, 41, 59, 0.4); transition: 0.2s; }
-        .data-table tr:hover { background: rgba(59, 130, 246, 0.1); }
-        .data-table td { padding: 12px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        .data-table td { padding: 14px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 0.85rem; }
         .data-table td:first-child { border-left: 1px solid var(--border); border-radius: 12px 0 0 12px; }
         .data-table td:last-child { border-right: 1px solid var(--border); border-radius: 0 12px 12px 0; }
+        
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-8 custom-scroll">
 
 <div class="max-w-7xl mx-auto">
     <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
         <div>
-            <h1 class="text-3xl font-bold tracking-tight text-white">TUV <span class="text-blue-500">Monitor</span></h1>
+            <h1 class="text-3xl font-bold tracking-tight text-white">TUV <span class="text-blue-500">Logistics</span></h1>
             <p id="syncStatus" class="text-slate-400 text-sm flex items-center gap-2">
-                <i class="fa-solid fa-circle-notch animate-spin text-blue-500"></i> Scanning for Excel files...
+                <i class="fa-solid fa-circle-notch animate-spin text-blue-500"></i> Connecting to GitHub...
             </p>
         </div>
         <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-2xl border border-slate-700">
             <button onclick="switchPage('dashboard')" id="nav-dash" class="px-6 py-2 rounded-xl text-sm font-semibold transition nav-active">Dashboard</button>
-            <button onclick="switchPage('all-data')" id="nav-all" class="px-6 py-2 rounded-xl text-sm font-semibold transition text-slate-400 hover:text-white">All Active Records</button>
+            <button onclick="switchPage('all-data')" id="nav-all" class="px-6 py-2 rounded-xl text-sm font-semibold transition text-slate-400 hover:text-white">Master Data View</button>
         </nav>
     </header>
 
-    <main id="page-dashboard" class="space-y-8">
-        <div class="relative group">
+    <main id="page-dashboard" class="space-y-8 animate-in fade-in duration-500">
+        <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                <i class="fa-solid fa-magnifying-glass text-slate-500 group-focus-within:text-blue-500 transition"></i>
+                <i class="fa-solid fa-magnifying-glass text-slate-500"></i>
             </div>
             <input type="text" id="mainSearch" 
-                class="w-full bg-slate-800/40 border border-slate-700 text-white py-5 pl-14 pr-6 rounded-2xl text-lg shadow-2xl transition-all outline-none focus:border-blue-500"
-                placeholder="Search Employee Name or ID..." oninput="handleSearch()">
-            <div id="searchDropdown" class="absolute w-full mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 hidden max-h-72 overflow-y-auto"></div>
+                class="w-full bg-slate-800/40 border border-slate-700 text-white py-5 pl-14 pr-6 rounded-2xl text-lg shadow-2xl outline-none focus:border-blue-500 transition-all"
+                placeholder="Search by Employee Name (Col B) or ID (Col C)..." oninput="handleSearch()">
+            <div id="searchDropdown" class="absolute w-full mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 hidden max-h-72 overflow-y-auto custom-scroll"></div>
         </div>
 
         <div id="dashboardContent" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5">
             <div class="col-span-full py-32 text-center glass-card border-dashed border-slate-700">
-                <i class="fa-solid fa-address-card text-6xl text-slate-800 mb-4"></i>
-                <p class="text-slate-500 text-lg">Search for a specific employee to see detailed card status</p>
+                <i class="fa-solid fa-id-card-clip text-6xl text-slate-800 mb-4"></i>
+                <p class="text-slate-500 text-lg font-medium">Please search and select an employee to view card details</p>
             </div>
         </div>
     </main>
 
-    <main id="page-all-data" class="hidden">
-        <div class="glass-card p-6 overflow-x-auto">
+    <main id="page-all-data" class="hidden animate-in slide-in-from-bottom-4 duration-500">
+        <div class="glass-card p-6 overflow-hidden">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold">Master Training Log</h2>
-                <span id="recordCount" class="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-xs font-bold">0 Records Found</span>
+                <div>
+                    <h2 class="text-xl font-bold">Master Training Record</h2>
+                    <p class="text-xs text-slate-500">Complete list from Excel Sheet: ACTIVE</p>
+                </div>
+                <span id="recordCount" class="bg-blue-600/20 text-blue-400 px-4 py-1.5 rounded-full text-xs font-bold">0 Records Found</span>
             </div>
-            <table class="data-table">
-                <thead>
-                    <tr id="tableHead">
-                        </tr>
-                </thead>
-                <tbody id="tableBody">
-                    </tbody>
-            </table>
+            <div class="overflow-x-auto custom-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr id="tableHead" class="border-b border-slate-700">
+                            </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        </tbody>
+                </table>
+            </div>
         </div>
     </main>
 
     <footer class="mt-20 py-8 border-t border-slate-800 text-center">
-        <p class="text-slate-500 text-xs tracking-widest uppercase">Created by <span class="text-white font-bold">Mohammad Javed Shaikh</span></p>
+        <p class="text-slate-500 text-[10px] tracking-[0.3em] uppercase">Built for TUV Systems by <span class="text-white font-bold">Mohammad Javed Shaikh</span></p>
     </footer>
 </div>
 
 <script>
-    // --- SETTINGS (REPLACE WITH YOUR DETAILS) ---
-    const USER = 'YOUR_GITHUB_USERNAME'; 
-    const REPO = 'TUV-Training-Log';
-    const FILENAME_BASE = 'TUV Training Log'; // Don't include extension
+    // --- DIRECT URL CONFIGURATION ---
+    // PASTE YOUR RAW GITHUB URL HERE
+    const RAW_URL = "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/TUV%20Training%20Log.xlsm";
 
     let masterData = [];
 
-    // --- AUTO-DETECTION LOGIC ---
     async function init() {
-        const extensions = ['.xlsm', '.xlsx'];
         const status = document.getElementById('syncStatus');
-        
-        for (let ext of extensions) {
-            const url = `https://raw.githubusercontent.com/${USER}/${REPO}/main/${encodeURIComponent(FILENAME_BASE + ext)}`;
-            try {
-                const res = await fetch(url);
-                if (res.ok) {
-                    const buf = await res.arrayBuffer();
-                    const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
-                    masterData = XLSX.utils.sheet_to_json(wb.Sheets["ACTIVE"]);
-                    
-                    status.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full"></span> Connected: ${FILENAME_BASE + ext}`;
-                    renderMasterTable();
-                    return;
-                }
-            } catch (e) { console.log(`Skipping ${ext}`); }
+        try {
+            const res = await fetch(RAW_URL);
+            if (!res.ok) throw new Error("File not found. Check if URL is correct and Repo is Public.");
+            
+            const buf = await res.arrayBuffer();
+            const data = new Uint8Array(buf);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            // Accessing the sheet named 'ACTIVE'
+            const sheet = workbook.Sheets["ACTIVE"];
+            if (!sheet) throw new Error("Sheet named 'ACTIVE' not found in file.");
+            
+            masterData = XLSX.utils.sheet_to_json(sheet);
+            
+            status.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full"></span> Data Synchronized`;
+            renderMasterTable();
+        } catch (e) {
+            status.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Connection Failed: ${e.message}`;
+            console.error(e);
         }
-        status.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> File not found (.xlsm or .xlsx)`;
     }
 
-    // --- PAGE 1 LOGIC ---
     function handleSearch() {
         const val = document.getElementById('mainSearch').value.toLowerCase();
         const dd = document.getElementById('searchDropdown');
         dd.innerHTML = '';
         if (val.length < 1) return dd.classList.add('hidden');
 
-        const filtered = masterData.filter(r => {
+        // Logic to search Column B (Index 1) and Column C (Index 2)
+        const results = masterData.filter(r => {
             const keys = Object.keys(r);
             const name = String(r[keys[1]] || "").toLowerCase();
             const id = String(r[keys[2]] || "").toLowerCase();
             return name.includes(val) || id.includes(val);
         });
 
-        if (filtered.length > 0) {
+        if (results.length > 0) {
             dd.classList.remove('hidden');
-            filtered.slice(0, 8).forEach(row => {
+            results.slice(0, 10).forEach(row => {
                 const keys = Object.keys(row);
                 const item = document.createElement('div');
-                item.className = 'p-4 hover:bg-blue-600/20 cursor-pointer flex justify-between border-b border-slate-800';
-                item.innerHTML = `<span>${row[keys[1]]}</span><span class="text-blue-400 font-mono text-sm">${row[keys[2]]}</span>`;
+                item.className = 'p-4 hover:bg-blue-600/20 cursor-pointer flex justify-between border-b border-slate-800 transition';
+                item.innerHTML = `<span>${row[keys[1]]}</span><span class="text-blue-500 font-mono text-xs uppercase tracking-widest">${row[keys[2]]}</span>`;
                 item.onclick = () => selectEmployee(row);
                 dd.appendChild(item);
             });
@@ -146,68 +170,86 @@
     function selectEmployee(row) {
         const keys = Object.keys(row);
         document.getElementById('searchDropdown').classList.add('hidden');
-        document.getElementById('mainSearch').value = row[keys[1]];
+        document.getElementById('mainSearch').value = `${row[keys[1]]} (${row[keys[2]]})`;
         
-        const stat = getStatus(row[keys[6]]);
+        const expiryDate = row[keys[6]];
+        const stat = calculateStatus(expiryDate);
         
         document.getElementById('dashboardContent').innerHTML = `
-            <div class="col-span-full glass-card p-8 flex flex-col md:flex-row justify-between items-center gap-6 border-l-8 border-blue-500">
-                <div>
-                    <h2 class="text-4xl font-bold">${row[keys[1]]}</h2>
-                    <p class="text-slate-400">${row[keys[3]]} | ID: ${row[keys[2]]}</p>
+            <div class="col-span-full glass-card p-8 flex flex-col md:flex-row justify-between items-center gap-6 border-l-8 border-blue-600 bg-gradient-to-r from-slate-800/50 to-transparent">
+                <div class="text-center md:text-left">
+                    <h2 class="text-4xl font-black text-white tracking-tighter">${row[keys[1]]}</h2>
+                    <p class="text-blue-400 font-semibold mt-1 uppercase text-sm tracking-widest">${row[keys[3]]} — ID: ${row[keys[2]]}</p>
                 </div>
                 <div class="px-8 py-4 rounded-2xl flex items-center gap-4 ${stat.class}">
                     <i class="fa-solid ${stat.icon} text-3xl"></i>
-                    <div><p class="text-xs uppercase font-bold opacity-70">Status</p><p class="text-2xl font-black">${stat.label}</p></div>
+                    <div>
+                        <p class="text-[10px] uppercase font-black opacity-60">Verification</p>
+                        <p class="text-2xl font-black leading-tight">${stat.label}</p>
+                    </div>
                 </div>
             </div>
-            ${infoCard("Type", row[keys[4]], "fa-tag")}
-            ${infoCard("Days Remaining", stat.days, "fa-hourglass-half", stat.days < 30 ? 'text-red-400' : '')}
-            ${infoCard("Issue Date", row[keys[5]], "fa-calendar-check")}
-            ${infoCard("Expiry Date", row[keys[6]], "fa-calendar-xmark")}
-            ${infoCard("Institute", row[keys[7]], "fa-building")}
-            ${infoCard("Certificate", row[keys[9]], "fa-file-contract")}
-            ${infoCard("Physical Received", row[keys[12]], "fa-hand-holding-box")}
-            ${infoCard("Status", row[keys[10]], "fa-user-clock")}
-            <div class="col-span-full glass-card p-6"><p class="text-xs font-bold text-slate-500 uppercase mb-2">Remarks</p><p>${row[keys[11]] || 'N/A'}</p></div>
+            
+            ${infoCard("Training Type", row[keys[4]], "fa-shield-halved")}
+            ${infoCard("Validity Left", stat.days + " Days", "fa-hourglass-half", stat.days < 30 ? 'text-red-400' : 'text-green-400')}
+            ${infoCard("Date of Issue", row[keys[5]], "fa-calendar-check")}
+            ${infoCard("Date of Expiry", row[keys[6]], "fa-calendar-xmark")}
+            ${infoCard("Institute Name", row[keys[7]], "fa-building-columns")}
+            ${infoCard("Certificate #", row[keys[9]], "fa-file-signature")}
+            ${infoCard("Physical Copy", row[keys[12]], "fa-paperclip")}
+            ${infoCard("Employment", row[keys[10]], "fa-user-tag")}
+
+            <div class="col-span-full md:col-span-2 glass-card p-6">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Professional Remarks</p>
+                <p class="text-slate-200 leading-relaxed italic border-l-2 border-slate-700 pl-4">"${row[keys[11]] || 'No remarks recorded for this file.'}"</p>
+            </div>
+            <div class="col-span-full md:col-span-2 glass-card p-6">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Renewal Request Information</p>
+                <div class="flex items-center gap-3">
+                    <div class="bg-slate-800 p-3 rounded-lg"><i class="fa-solid fa-rotate text-blue-500"></i></div>
+                    <p class="text-slate-200 font-medium">Last Request: <span class="text-white font-bold">${row[keys[8]] || 'No pending requests'}</span></p>
+                </div>
+            </div>
         `;
     }
 
-    // --- PAGE 2 LOGIC ---
     function renderMasterTable() {
         if (masterData.length === 0) return;
         const keys = Object.keys(masterData[0]);
-        document.getElementById('recordCount').innerText = `${masterData.length} Records Total`;
+        document.getElementById('recordCount').innerText = `${masterData.length} ACTIVE RECORDS`;
 
-        // Render Headers
         const head = document.getElementById('tableHead');
         head.innerHTML = keys.slice(1, 13).map(k => `<th>${k}</th>`).join('') + '<th>Status</th>';
 
-        // Render Rows
         const body = document.getElementById('tableBody');
         body.innerHTML = masterData.map(row => {
-            const stat = getStatus(row[keys[6]]);
+            const stat = calculateStatus(row[keys[6]]);
             return `<tr>
                 ${keys.slice(1, 13).map(k => `<td>${row[k] || '-'}</td>`).join('')}
-                <td><span class="px-3 py-1 rounded-full text-[10px] font-bold ${stat.class}">${stat.label}</span></td>
+                <td><span class="px-3 py-1 rounded-full text-[10px] font-black ${stat.class}">${stat.label}</span></td>
             </tr>`;
         }).join('');
     }
 
-    // --- HELPERS ---
-    function infoCard(lbl, val, icon, cls="") {
-        return `<div class="glass-card p-6 flex items-center gap-4">
-            <div class="text-blue-500"><i class="fa-solid ${icon} text-xl"></i></div>
-            <div><p class="text-[10px] font-bold text-slate-500 uppercase">${lbl}</p><p class="text-lg font-bold ${cls}">${val || '---'}</p></div>
+    function infoCard(label, val, icon, extraClass="") {
+        return `<div class="glass-card p-6 flex items-center gap-5">
+            <div class="bg-slate-800 p-3 rounded-xl text-blue-500 shadow-inner"><i class="fa-solid ${icon} text-lg"></i></div>
+            <div>
+                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">${label}</p>
+                <p class="text-sm font-bold text-white ${extraClass}">${val || '---'}</p>
+            </div>
         </div>`;
     }
 
-    function getStatus(exp) {
-        if (!exp) return { label: 'NO DATA', class: 'status-expired', icon: 'fa-question', days: 0 };
-        const days = Math.ceil((new Date(exp) - new Date()) / 86400000);
-        if (days <= 0) return { label: 'EXPIRED', class: 'status-expired', icon: 'fa-circle-xmark', days };
-        if (days <= 60) return { label: 'EXPIRING', class: 'status-warning', icon: 'fa-triangle-exclamation', days };
-        return { label: 'VALID', class: 'status-valid', icon: 'fa-circle-check', days };
+    function calculateStatus(dateStr) {
+        if (!dateStr) return { label: 'NO EXPIRY', class: 'status-expired', icon: 'fa-circle-question', days: 0 };
+        const expiry = new Date(dateStr);
+        const today = new Date();
+        const diff = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        
+        if (diff <= 0) return { label: 'EXPIRED', class: 'status-expired', icon: 'fa-circle-xmark', days: diff };
+        if (diff <= 60) return { label: 'EXPIRING', class: 'status-warning', icon: 'fa-triangle-exclamation', days: diff };
+        return { label: 'VALID', class: 'status-valid', icon: 'fa-circle-check', days: diff };
     }
 
     function switchPage(p) {
