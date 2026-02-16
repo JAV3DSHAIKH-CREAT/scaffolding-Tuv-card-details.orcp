@@ -3,213 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TUV Training Portal</title>
+    <title>TUV Training Monitor | Professional Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f1f5f9; color: #1e293b; }
-        .dashboard-card { 
-            background: white; 
-            border-radius: 1rem; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s ease;
-        }
-        .nav-btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: 0.3s; }
-        .nav-btn.active { background: #1e3a8a; color: white; }
-        
-        /* Table Styles */
-        .table-container { overflow-x: auto; background: white; border-radius: 1rem; border: 1px solid #e2e8f0; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
-        td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
-        tr:hover { background: #f8fafc; }
-
-        /* Status Icons/Badges */
-        .badge { padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
-        .badge-valid { background: #dcfce7; color: #15803d; }
-        .badge-warning { background: #fef3c7; color: #b45309; }
-        .badge-expired { background: #fee2e2; color: #b91c1c; }
+        .rounded-card { border-radius: 1.25rem; }
+        .soft-shadow { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); }
+        .navy-gradient { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); }
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
     </style>
 </head>
 <body class="p-4 md:p-10">
 
-<div class="max-w-7xl mx-auto">
-    <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-900 uppercase tracking-tight">TUV Training Log</h1>
-            <div id="syncStatus" class="flex items-center gap-2 text-sm font-medium text-slate-500">
-                <span class="w-3 h-3 bg-slate-300 rounded-full animate-pulse"></span> Initializing Scaffolding...
+    <div class="max-w-6xl mx-auto flex gap-4 mb-8">
+        <button onclick="togglePage(1)" id="tab1" class="px-8 py-3 navy-gradient text-white rounded-full font-bold soft-shadow transition-all hover:scale-105">
+            <i class="fa fa-chart-pie mr-2"></i> Dashboard
+        </button>
+        <button onclick="togglePage(2)" id="tab2" class="px-8 py-3 bg-white text-slate-600 rounded-full font-bold soft-shadow border border-gray-100 hover:bg-gray-50">
+            <i class="fa fa-list mr-2"></i> Full Data Log
+        </button>
+    </div>
+
+    <div id="page1" class="max-w-6xl mx-auto">
+        <div class="mb-12 relative">
+            <div class="relative flex items-center">
+                <i class="fa fa-search absolute left-6 text-slate-400 text-xl"></i>
+                <input type="text" id="searchInput" oninput="liveSearch()" placeholder="Search Name or Employee ID..." 
+                    class="w-full pl-16 pr-6 py-5 rounded-2xl border-none soft-shadow text-lg focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
-        </div>
-        <div class="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-            <button onclick="switchTab('dash')" id="tab-dash" class="nav-btn active">Dashboard</button>
-            <button onclick="switchTab('data')" id="tab-data" class="nav-btn text-slate-500">All Records</button>
-        </div>
-    </header>
-
-    <div id="view-dash" class="space-y-6">
-        <div class="relative">
-            <input type="text" id="searchInput" 
-                class="w-full p-4 pl-12 rounded-2xl border border-slate-200 shadow-sm outline-none focus:ring-2 focus:ring-blue-900 transition-all text-lg"
-                placeholder="Search by Employee Name or ID..." oninput="handleLiveSearch()">
-            <i class="fa-solid fa-magnifying-glass absolute left-4 top-5 text-slate-400"></i>
-            <div id="dropdown" class="absolute w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 hidden max-h-60 overflow-y-auto"></div>
+            <div id="suggestions" class="absolute w-full mt-2 bg-white rounded-2xl shadow-2xl z-50 hidden max-h-60 overflow-y-auto border border-gray-100"></div>
         </div>
 
-        <div id="dashDisplay" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="col-span-full py-20 text-center dashboard-card border-dashed">
-                <i class="fa-solid fa-id-card text-5xl text-slate-200 mb-4"></i>
-                <p class="text-slate-400 font-medium">Search an employee to display dashboard cards</p>
+        <div id="dashboardContent" class="hidden animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="cardGrid">
+                </div>
+        </div>
+    </div>
+
+    <div id="page2" class="max-w-7xl mx-auto hidden">
+        <div class="bg-white rounded-3xl soft-shadow overflow-hidden border border-gray-100">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left" id="dataTable">
+                    <thead class="navy-gradient text-white">
+                        <tr id="tableHeader"></tr>
+                    </thead>
+                    <tbody id="tableBody" class="text-slate-600 divide-y divide-gray-100"></tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <div id="view-data" class="hidden">
-        <div class="table-container">
-            <table>
-                <thead id="tableHead"></thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <footer class="mt-16 text-center border-t border-slate-200 pt-8">
-        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">
-            Created by <span class="text-slate-900">Mohammad Javed Shaikh</span>
-        </p>
+    <footer class="max-w-6xl mx-auto mt-16 py-8 border-t border-gray-200 text-center text-slate-400 font-medium">
+        Designed & Developed by <span class="text-slate-800 font-bold">Mohammad Javed Shaikh</span>
     </footer>
-</div>
 
-<script>
-    // --- GITHUB CONFIGURATION ---
-    const CONFIG = {
-        username: 'YOUR_GITHUB_USERNAME', // Change this
-        repo: 'TUV-Training-Log',        // Change this
-        filename: 'TUV Training Log.xlsm', // Supports .xlsx or .xlsm
-        sheetName: 'ACTIVE'
-    };
+    <script>
+        let fullData = [];
 
-    let fullData = [];
-
-    // Initialize & Fetch from GitHub
-    async function init() {
-        const status = document.getElementById('syncStatus');
-        const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/main/${encodeURIComponent(CONFIG.filename)}`;
-        
-        try {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("File not found on GitHub");
-            
-            const arrayBuffer = await res.arrayBuffer();
-            const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-            const sheet = workbook.Sheets[CONFIG.sheetName];
-            
-            if (!sheet) throw new Error(`Sheet '${CONFIG.sheetName}' not found`);
-            
-            fullData = XLSX.utils.sheet_to_json(sheet);
-            status.innerHTML = `<span class="w-3 h-3 bg-green-500 rounded-full"></span> Live Connection: ${CONFIG.filename}`;
-            renderTable();
-        } catch (err) {
-            status.innerHTML = `<span class="w-3 h-3 bg-red-500 rounded-full"></span> Error: ${err.message}`;
+        // LOAD FILE (Supports .xlsx or .xlsm)
+        async function fetchExcel() {
+            const fileName = "TUV Training Log.xlsx"; // Ensure this matches your file (or change to .xlsm)
+            try {
+                const response = await fetch(fileName);
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                fullData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                renderFullTable();
+            } catch (err) {
+                console.error("File not found or error loading:", err);
+                alert("Please ensure 'TUV Training Log' is uploaded to the same folder.");
+            }
         }
-    }
 
-    function handleLiveSearch() {
-        const val = document.getElementById('searchInput').value.toLowerCase();
-        const dd = document.getElementById('dropdown');
-        dd.innerHTML = '';
-        if (val.length < 1) { dd.classList.add('hidden'); return; }
+        function liveSearch() {
+            const val = document.getElementById('searchInput').value.toLowerCase();
+            const suggBox = document.getElementById('suggestions');
+            if(val.length < 1) { suggBox.classList.add('hidden'); return; }
 
-        const filtered = fullData.filter(r => {
-            const keys = Object.keys(r);
-            return String(r[keys[1]]).toLowerCase().includes(val) || String(r[keys[2]]).toLowerCase().includes(val);
-        });
+            const matches = fullData.slice(1).filter(r => 
+                String(r[1]).toLowerCase().includes(val) || 
+                String(r[2]).toLowerCase().includes(val)
+            );
 
-        if (filtered.length > 0) {
-            dd.classList.remove('hidden');
-            filtered.forEach(row => {
-                const keys = Object.keys(row);
-                const div = document.createElement('div');
-                div.className = "p-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer flex justify-between";
-                div.innerHTML = `<span class="font-bold">${row[keys[1]]}</span><span class="text-slate-400 text-sm">${row[keys[2]]}</span>`;
-                div.onclick = () => showDashboard(row);
-                dd.appendChild(div);
-            });
+            suggBox.innerHTML = matches.map(r => `
+                <div onclick="selectUser('${r[1]}')" class="p-4 hover:bg-slate-50 cursor-pointer border-b border-gray-50 flex justify-between">
+                    <span class="font-bold text-slate-700">${r[2]}</span>
+                    <span class="text-slate-400 text-sm">ID: ${r[1]}</span>
+                </div>
+            `).join('');
+            suggBox.classList.toggle('hidden', matches.length === 0);
         }
-    }
 
-    function showDashboard(row) {
-        document.getElementById('dropdown').classList.add('hidden');
-        const keys = Object.keys(row);
-        const stat = getStatus(row[keys[6]]);
-        
-        document.getElementById('dashDisplay').innerHTML = `
-            <div class="col-span-full dashboard-card p-6 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900 text-white">
-                <div>
-                    <h2 class="text-3xl font-bold">${row[keys[1]]}</h2>
-                    <p class="text-slate-400 font-semibold">${row[keys[3]]} | ID: ${row[keys[2]]}</p>
+        function selectUser(id) {
+            const row = fullData.find(r => String(r[1]) === String(id));
+            document.getElementById('suggestions').classList.add('hidden');
+            document.getElementById('searchInput').value = row[2];
+            displayDashboard(row);
+        }
+
+        function displayDashboard(row) {
+            document.getElementById('dashboardContent').classList.remove('hidden');
+            const grid = document.getElementById('cardGrid');
+
+            // Calculation Logic
+            const expiry = new Date(row[6]);
+            const today = new Date();
+            const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+            
+            let status = { text: 'VALID', color: 'text-green-500', icon: 'fa-circle-check', bg: 'bg-green-50' };
+            if (daysLeft <= 0) status = { text: 'EXPIRED', color: 'text-red-500', icon: 'fa-circle-xmark', bg: 'bg-red-50' };
+            else if (daysLeft <= 30) status = { text: 'EXPIRING SOON', color: 'text-orange-500', icon: 'fa-triangle-exclamation', bg: 'bg-orange-50' };
+
+            const fields = [
+                { label: 'Position', val: row[3], icon: 'fa-briefcase' },
+                { label: 'Type', val: row[4], icon: 'fa-tags' },
+                { label: 'Issue Date', val: formatDate(row[5]), icon: 'fa-calendar-plus' },
+                { label: 'Expiry Date', val: formatDate(row[6]), icon: 'fa-calendar-xmark' },
+                { label: 'Remaining Days', val: daysLeft, icon: 'fa-clock', highlight: true },
+                { label: 'Status', val: status.text, status: true },
+                { label: 'Institute', val: row[7], icon: 'fa-building' },
+                { label: 'Renewal Date', val: row[8] || 'N/A', icon: 'fa-arrows-rotate' },
+                { label: 'Certificate', val: row[9], icon: 'fa-file-contract' },
+                { label: 'Emp Status', val: row[10], icon: 'fa-user-tag' },
+                { label: 'Remarks', val: row[11] || 'None', icon: 'fa-comment-dots' },
+                { label: 'Physical Copy', val: row[12], icon: 'fa-hard-drive' }
+            ];
+
+            grid.innerHTML = fields.map(f => `
+                <div class="bg-white p-6 rounded-card soft-shadow border border-gray-50 flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl ${f.status ? status.bg : 'bg-slate-50'} flex items-center justify-center text-xl">
+                        <i class="fa ${f.status ? f.icon || status.icon : f.icon} ${f.status ? status.color : 'text-slate-400'}"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">${f.label}</p>
+                        <p class="text-lg font-bold ${f.status ? status.color : 'text-slate-700'}">${f.val}</p>
+                    </div>
                 </div>
-                <div class="badge ${stat.class} text-lg py-2 px-6">
-                    <i class="fa-solid ${stat.icon}"></i> ${stat.label}
-                </div>
-            </div>
-            ${infoBox("Position", row[keys[3]], "fa-user-tie")}
-            ${infoBox("Type", row[keys[4]], "fa-tags")}
-            ${infoBox("Remaining Days", stat.days, "fa-clock")}
-            ${infoBox("Expiry Date", row[keys[6]], "fa-calendar-xmark")}
-            ${infoBox("Issue Date", row[keys[5]], "fa-calendar-check")}
-            ${infoBox("Institute", row[keys[7]], "fa-building")}
-            ${infoBox("Certificate", row[keys[9]], "fa-certificate")}
-            ${infoBox("Physical Copy", row[keys[12]], "fa-file-lines")}
-            <div class="col-span-full dashboard-card p-6">
-                <p class="text-xs font-bold text-slate-400 uppercase mb-2">Remarks</p>
-                <p class="text-slate-700">${row[keys[11]] || 'No Remarks'}</p>
-            </div>
-        `;
-    }
+            `).join('');
+        }
 
-    function infoBox(lbl, val, icon) {
-        return `
-        <div class="dashboard-card p-6 flex items-center gap-4">
-            <div class="text-blue-900 bg-blue-50 p-3 rounded-lg"><i class="fa-solid ${icon}"></i></div>
-            <div>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${lbl}</p>
-                <p class="text-sm font-bold">${val || '---'}</p>
-            </div>
-        </div>`;
-    }
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            const d = new Date(date);
+            return isNaN(d) ? date : d.toLocaleDateString('en-GB');
+        }
 
-    function renderTable() {
-        if (fullData.length === 0) return;
-        const keys = Object.keys(fullData[0]);
-        document.getElementById('tableHead').innerHTML = `<tr>${keys.slice(1, 13).map(k => `<th>${k}</th>`).join('')}<th>Status</th></tr>`;
-        document.getElementById('tableBody').innerHTML = fullData.map(r => {
-            const s = getStatus(r[keys[6]]);
-            return `<tr>${keys.slice(1, 13).map(k => `<td>${r[k] || '-'}</td>`).join('')}<td><span class="badge ${s.class}">${s.label}</span></td></tr>`;
-        }).join('');
-    }
+        function renderFullTable() {
+            const head = document.getElementById('tableHeader');
+            const body = document.getElementById('tableBody');
+            head.innerHTML = fullData[0].map(h => `<th class="p-4 font-semibold">${h}</th>`).join('');
+            body.innerHTML = fullData.slice(1).map(row => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    ${row.map(cell => `<td class="p-4 text-sm border-b border-gray-50">${cell || ''}</td>`).join('')}
+                </tr>
+            `).join('');
+        }
 
-    function getStatus(exp) {
-        if (!exp) return { label: 'N/A', class: 'badge-expired', icon: 'fa-question', days: 0 };
-        const days = Math.ceil((new Date(exp) - new Date()) / 86400000);
-        if (days <= 0) return { label: 'EXPIRED', class: 'badge-expired', icon: 'fa-circle-xmark', days };
-        if (days <= 60) return { label: 'EXPIRING', class: 'badge-warning', icon: 'fa-triangle-exclamation', days };
-        return { label: 'VALID', class: 'badge-valid', icon: 'fa-circle-check', days };
-    }
+        function togglePage(num) {
+            document.getElementById('page1').classList.toggle('hidden', num !== 1);
+            document.getElementById('page2').classList.toggle('hidden', num !== 2);
+            document.getElementById('tab1').className = num === 1 ? 'px-8 py-3 navy-gradient text-white rounded-full font-bold soft-shadow transition-all' : 'px-8 py-3 bg-white text-slate-600 rounded-full font-bold soft-shadow border border-gray-100';
+            document.getElementById('tab2').className = num === 2 ? 'px-8 py-3 navy-gradient text-white rounded-full font-bold soft-shadow transition-all' : 'px-8 py-3 bg-white text-slate-600 rounded-full font-bold soft-shadow border border-gray-100';
+        }
 
-    function switchTab(t) {
-        document.getElementById('view-dash').classList.toggle('hidden', t !== 'dash');
-        document.getElementById('view-data').classList.toggle('hidden', t !== 'data');
-        document.getElementById('tab-dash').classList.toggle('active', t === 'dash');
-        document.getElementById('tab-data').classList.toggle('active', t === 'data');
-    }
-
-    init();
-</script>
-
+        window.onload = fetchExcel;
+    </script>
 </body>
 </html>
