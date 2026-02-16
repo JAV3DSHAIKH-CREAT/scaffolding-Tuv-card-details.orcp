@@ -3,145 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TUV Dashboard | High Performance</title>
+    <title>TUV Training Monitor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .rounded-card { border-radius: 1rem; }
-        .soft-shadow { box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .navy-bg { background-color: #0f172a; }
-        #loader { display: flex; position: fixed; inset: 0; background: white; z-index: 100; align-items: center; justify-content: center; transition: opacity 0.5s; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .navy-header { background-color: #1e293b; }
+        #loader { position: fixed; inset: 0; background: #ffffff; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s; }
     </style>
 </head>
-<body class="bg-slate-50 font-sans">
+<body>
 
     <div id="loader">
-        <div class="text-center">
-            <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600 mb-4"></i>
-            <p class="text-slate-500 font-medium">Processing Training Log...</p>
-        </div>
+        <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+        <p class="text-slate-600 font-semibold">Loading TUV Data...</p>
     </div>
 
-    <div class="max-w-6xl mx-auto p-6">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-2xl font-bold text-slate-800">TUV Training Card Monitor</h1>
-            <div class="flex gap-2">
-                <button onclick="showPage(1)" class="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold">Dashboard</button>
-                <button onclick="showPage(2)" class="px-5 py-2 bg-white text-slate-600 border rounded-lg text-sm font-semibold">All Data</button>
+    <div class="max-w-6xl mx-auto p-4 md:p-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">TUV Training Dashboard</h1>
+                <p class="text-slate-500">Search and verify certification status</p>
+            </div>
+            <div class="bg-white p-1 rounded-xl shadow-sm border flex">
+                <button onclick="showPage(1)" id="btn1" class="px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white transition-all">Dashboard</button>
+                <button onclick="showPage(2)" id="btn2" class="px-6 py-2 rounded-lg text-sm font-bold text-slate-600 transition-all">View All Data</button>
             </div>
         </div>
 
-        <div id="page1">
-            <div class="relative mb-8">
-                <input type="text" id="search" onkeyup="fastSearch()" placeholder="Search Name or Employee ID..." 
-                    class="w-full p-4 pl-12 rounded-xl border-0 shadow-sm outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500">
-                <i class="fa fa-search absolute left-4 top-5 text-slate-400"></i>
-                <div id="results" class="absolute w-full mt-1 bg-white shadow-xl rounded-xl z-50 hidden max-h-60 overflow-auto border"></div>
+        <div id="page1" class="space-y-6">
+            <div class="relative group">
+                <i class="fa fa-search absolute left-5 top-5 text-slate-400 text-lg transition-colors group-focus-within:text-blue-500"></i>
+                <input type="text" id="search" onkeyup="doSearch()" placeholder="Type Employee Name or ID..." 
+                    class="w-full p-5 pl-14 rounded-2xl border-0 card-shadow outline-none ring-2 ring-transparent focus:ring-blue-500 transition-all text-lg">
+                <button onclick="resetSearch()" class="absolute right-5 top-5 text-slate-300 hover:text-red-500"><i class="fa fa-times-circle"></i></button>
+                
+                <div id="suggestions" class="absolute w-full mt-2 bg-white rounded-2xl shadow-2xl z-50 hidden max-h-64 overflow-y-auto border border-slate-100"></div>
             </div>
 
-            <div id="dashGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="col-span-full text-center py-20 text-slate-400 border-2 border-dashed rounded-2xl">
-                    <i class="fa fa-id-card text-4xl mb-3"></i>
-                    <p>Search for an employee to view card details</p>
+            <div id="dashGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 min-h-[400px]">
+                <div class="col-span-full flex flex-col items-center justify-center py-20 bg-white/50 rounded-3xl border-2 border-dashed border-slate-300">
+                    <i class="fa fa-id-card-clip text-6xl text-slate-200 mb-4"></i>
+                    <p class="text-slate-400 font-medium">Search for an employee to display card details</p>
                 </div>
             </div>
         </div>
 
         <div id="page2" class="hidden">
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden border">
+            <div class="bg-white rounded-2xl card-shadow overflow-hidden border border-slate-200">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm" id="mainTable"></table>
+                    <table class="w-full text-left text-sm" id="tableContent"></table>
                 </div>
             </div>
         </div>
 
-        <footer class="mt-12 py-6 border-t text-center text-slate-400 text-sm">
-            Created by <b>Mohammad Javed Shaikh</b>
+        <footer class="mt-16 pt-8 border-t border-slate-200 text-center">
+            <p class="text-slate-400 font-medium">Created by <span class="text-slate-900 font-bold underline">Mohammad Javed Shaikh</span></p>
         </footer>
     </div>
 
     <script>
-        let db = [];
-        const fileName = "TUV Training Log.xlsm";
+        let mainData = [];
+        // UPDATED TO .xlsx
+        const EXCEL_FILE = "TUV Training Log.xlsx";
 
-        async function init() {
+        async function loadData() {
             try {
-                const res = await fetch(fileName);
-                const buf = await res.arrayBuffer();
-                const wb = XLSX.read(buf, {type:'array', cellDates: true});
-                const sheet = wb.Sheets[wb.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:""});
+                const response = await fetch(EXCEL_FILE);
+                if (!response.ok) throw new Error("File Not Found");
                 
-                // Optimized: Skip merged Row 1, use Row 2 for Headers
-                db = rows.slice(2); 
-                renderTable(rows.slice(1)); // Page 2 starts from Header row
-                
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+
+                // Row 1 is merged title, Row 2 is headers, Row 3 is data
+                mainData = json.slice(2); 
+                renderFullTable(json.slice(1)); // Start table from headers
+
                 document.getElementById('loader').style.opacity = '0';
-                setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
-            } catch (e) {
-                alert("Error: File not found. Check if name is 'TUV Training Log.xlsm'");
+                setTimeout(() => document.getElementById('loader').style.display = 'none', 400);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loader').innerHTML = `<p class="text-red-500 font-bold">Error: ${EXCEL_FILE} not found in root folder.</p>`;
             }
         }
 
-        function fastSearch() {
-            const query = document.getElementById('search').value.toLowerCase();
-            const resBox = document.getElementById('results');
-            if (query.length < 2) { resBox.classList.add('hidden'); return; }
+        function doSearch() {
+            const input = document.getElementById('search').value.toLowerCase();
+            const sugg = document.getElementById('suggestions');
+            if (input.length < 2) { sugg.classList.add('hidden'); return; }
 
-            const filtered = db.filter(r => 
-                String(r[1]).toLowerCase().includes(query) || 
-                String(r[2]).toLowerCase().includes(query)
-            ).slice(0, 10); // Limit results for speed
+            const filtered = mainData.filter(r => 
+                String(r[1]).toLowerCase().includes(input) || 
+                String(r[2]).toLowerCase().includes(input)
+            ).slice(0, 8);
 
-            resBox.innerHTML = filtered.map(r => `
-                <div onclick="renderDash('${r[1]}')" class="p-3 hover:bg-blue-50 cursor-pointer border-b flex justify-between">
-                    <span class="font-bold text-slate-700">${r[2]}</span>
-                    <span class="text-xs text-slate-400">ID: ${r[1]}</span>
-                </div>
-            `).join('');
-            resBox.classList.remove('hidden');
+            if (filtered.length > 0) {
+                sugg.innerHTML = filtered.map(r => `
+                    <div onclick="updateDashboard('${r[1]}')" class="p-4 hover:bg-blue-50 cursor-pointer border-b flex justify-between items-center transition-colors">
+                        <span class="font-bold text-slate-700">${r[2]}</span>
+                        <span class="px-2 py-1 bg-slate-100 text-[10px] font-bold rounded text-slate-500 uppercase">ID: ${r[1]}</span>
+                    </div>
+                `).join('');
+                sugg.classList.remove('hidden');
+            } else {
+                sugg.classList.add('hidden');
+            }
         }
 
-        function renderDash(id) {
-            const r = db.find(x => String(x[1]) === String(id));
-            document.getElementById('results').classList.add('hidden');
-            
-            const exp = new Date(r[6]);
-            const days = Math.ceil((exp - new Date()) / 86400000);
-            let s = {t:'VALID', c:'text-green-600', i:'fa-check-circle', b:'bg-green-50'};
-            if(days <= 0) s = {t:'EXPIRED', c:'text-red-600', i:'fa-times-circle', b:'bg-red-50'};
-            else if(days <= 30) s = {t:'EXPIRING SOON', c:'text-orange-600', i:'fa-exclamation-triangle', b:'bg-orange-50'};
+        function updateDashboard(id) {
+            const row = mainData.find(x => String(x[1]) === String(id));
+            document.getElementById('suggestions').classList.add('hidden');
+            document.getElementById('search').value = row[2];
 
-            const map = [
-                {l:'Position', v:r[3], i:'fa-user-tag'}, {l:'Type', v:r[4], i:'fa-layer-group'},
-                {l:'Issue Date', v:fmt(r[5]), i:'fa-calendar'}, {l:'Expiry Date', v:fmt(r[6]), i:'fa-calendar-times'},
-                {l:'Days Left', v:days, i:'fa-hourglass-half'}, {l:'Status', v:s.t, color:s.c, icon:s.i, bg:s.b},
-                {l:'Institute', v:r[7], i:'fa-school'}, {l:'Renewal Req', v:fmt(r[8]), i:'fa-sync'},
-                {l:'Certificate', v:r[9], i:'fa-certificate'}, {l:'Emp Status', v:r[10], i:'fa-briefcase'},
-                {l:'Remarks', v:r[11] || 'N/A', i:'fa-comment'}, {l:'Physical Copy', v:r[12], i:'fa-folder-open'}
+            // Calculation Logic
+            const expDate = new Date(row[6]);
+            const today = new Date();
+            const diff = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+            
+            let status = { t: 'VALID', c: 'text-green-600', i: 'fa-check-circle', b: 'bg-green-100' };
+            if (diff <= 0) status = { t: 'EXPIRED', c: 'text-red-600', i: 'fa-times-circle', b: 'bg-red-100' };
+            else if (diff <= 30) status = { t: 'EXPIRING SOON', c: 'text-orange-600', i: 'fa-exclamation-triangle', b: 'bg-orange-100' };
+
+            const cards = [
+                { l: 'Position', v: row[3], i: 'fa-briefcase' },
+                { l: 'Type', v: row[4], i: 'fa-layer-group' },
+                { l: 'Issue Date', v: fDate(row[5]), i: 'fa-calendar-day' },
+                { l: 'Expiry Date', v: fDate(row[6]), i: 'fa-calendar-xmark' },
+                { l: 'Remaining Days', v: diff, i: 'fa-hourglass-half' },
+                { l: 'Status', v: status.t, color: status.c, icon: status.i, bg: status.b },
+                { l: 'Institute', v: row[7], i: 'fa-building-columns' },
+                { l: 'Renewal Req.', v: fDate(row[8]), i: 'fa-clock-rotate-left' },
+                { l: 'Certificate', v: row[9], i: 'fa-certificate' },
+                { l: 'Emp Status', v: row[10], i: 'fa-user-gear' },
+                { l: 'Remarks', v: row[11] || 'None', i: 'fa-comment-dots' },
+                { l: 'Physical Copy', v: row[12], i: 'fa-file-signature' }
             ];
 
-            document.getElementById('dashGrid').innerHTML = map.map(f => `
-                <div class="bg-white p-4 rounded-xl border flex items-center gap-4">
-                    <div class="w-10 h-10 ${f.bg || 'bg-slate-100'} rounded-lg flex items-center justify-center ${f.color || 'text-slate-400'}">
-                        <i class="fa ${f.icon}"></i>
+            document.getElementById('dashGrid').innerHTML = cards.map(c => `
+                <div class="bg-white p-5 rounded-2xl card-shadow border border-slate-50 flex items-center gap-4 transition-transform hover:scale-[1.02]">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl ${c.bg || 'bg-slate-50'} ${c.color || 'text-slate-400'}">
+                        <i class="fa ${c.icon}"></i>
                     </div>
                     <div>
-                        <p class="text-[10px] uppercase font-bold text-slate-400 tracking-tighter">${f.label}</p>
-                        <p class="font-bold ${f.color || 'text-slate-700'}">${f.v || 'N/A'}</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${c.l}</p>
+                        <p class="text-lg font-bold ${c.color || 'text-slate-800'}">${c.v || 'N/A'}</p>
                     </div>
                 </div>
             `).join('');
         }
 
-        function fmt(d) { if(!d) return 'N/A'; const date = new Date(d); return isNaN(date) ? d : date.toLocaleDateString('en-GB'); }
+        function fDate(d) {
+            if (!d) return 'N/A';
+            const date = new Date(d);
+            return isNaN(date) ? d : date.toLocaleDateString('en-GB');
+        }
 
-        function renderTable(data) {
-            const table = document.getElementById('mainTable');
+        function renderFullTable(data) {
+            const table = document.getElementById('tableContent');
             table.innerHTML = data.map((r, i) => `
-                <tr class="${i===0 ? 'bg-slate-800 text-white font-bold' : 'border-b hover:bg-slate-50'}">
-                    ${r.map(c => `<td class="p-3 border-r">${c}</td>`).join('')}
+                <tr class="${i === 0 ? 'navy-header text-white font-bold' : 'border-b hover:bg-slate-50'}">
+                    ${r.map(cell => `<td class="p-4 border-r border-slate-100">${cell}</td>`).join('')}
                 </tr>
             `).join('');
         }
@@ -149,9 +175,17 @@
         function showPage(p) {
             document.getElementById('page1').classList.toggle('hidden', p !== 1);
             document.getElementById('page2').classList.toggle('hidden', p !== 2);
+            document.getElementById('btn1').className = p === 1 ? 'px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white shadow-md' : 'px-6 py-2 rounded-lg text-sm font-bold text-slate-600';
+            document.getElementById('btn2').className = p === 2 ? 'px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white shadow-md' : 'px-6 py-2 rounded-lg text-sm font-bold text-slate-600';
         }
 
-        init();
+        function resetSearch() {
+            document.getElementById('search').value = "";
+            document.getElementById('suggestions').classList.add('hidden');
+            location.reload();
+        }
+
+        window.onload = loadData;
     </script>
 </body>
 </html>
