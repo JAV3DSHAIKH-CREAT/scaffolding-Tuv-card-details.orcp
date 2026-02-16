@@ -64,7 +64,7 @@
 
         // LOAD FILE (Supports .xlsx or .xlsm)
         async function fetchExcel() {
-            const fileName = "TUV Training Log.xlsx"; // Ensure this matches your file (or change to .xlsm)
+            const fileName = "TUV Training Log.xlsm"; // Ensure this matches your file (or change to .xlsm)
             try {
                 const response = await fetch(fileName);
                 const arrayBuffer = await response.arrayBuffer();
@@ -173,3 +173,4 @@
     </script>
 </body>
 </html>
+
