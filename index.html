@@ -11,8 +11,10 @@
         .rounded-card { border-radius: 1.25rem; }
         .soft-shadow { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); }
         .navy-gradient { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); }
         body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
+        /* Smooth fade-in animation */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="p-4 md:p-10">
@@ -36,8 +38,8 @@
             <div id="suggestions" class="absolute w-full mt-2 bg-white rounded-2xl shadow-2xl z-50 hidden max-h-60 overflow-y-auto border border-gray-100"></div>
         </div>
 
-        <div id="dashboardContent" class="hidden animate-fade-in">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="cardGrid">
+        <div id="dashboardContent" class="hidden fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="cardGrid">
                 </div>
         </div>
     </div>
@@ -60,21 +62,31 @@
     </footer>
 
     <script>
-        let fullData = [];
+        let rawExcelData = [];
+        let headers = [];
+        let employeeData = [];
 
-        // LOAD FILE (Supports .xlsx or .xlsm)
         async function fetchExcel() {
-            const fileName = "TUV Training Log.xlsm"; // Ensure this matches your file (or change to .xlsm)
+            // Updated to handle both .xlsx and .xlsm - adjust name as needed
+            const fileName = "TUV Training Log.xlsm"; 
             try {
                 const response = await fetch(fileName);
                 const arrayBuffer = await response.arrayBuffer();
                 const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                fullData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                
+                // Read all data including the merged header
+                rawExcelData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                // HANDLE MERGED ROW 1: 
+                // We assume Index 0 is the merged title, Index 1 is the actual headers.
+                headers = rawExcelData[1]; 
+                employeeData = rawExcelData.slice(2); // Actual records start from row 3
+
                 renderFullTable();
             } catch (err) {
-                console.error("File not found or error loading:", err);
-                alert("Please ensure 'TUV Training Log' is uploaded to the same folder.");
+                console.error("Error:", err);
+                alert("Error: Ensure 'TUV Training Log.xlsm' is in the root folder.");
             }
         }
 
@@ -83,9 +95,10 @@
             const suggBox = document.getElementById('suggestions');
             if(val.length < 1) { suggBox.classList.add('hidden'); return; }
 
-            const matches = fullData.slice(1).filter(r => 
-                String(r[1]).toLowerCase().includes(val) || 
-                String(r[2]).toLowerCase().includes(val)
+            // Search in Column B (Index 1) and Column C (Index 2)
+            const matches = employeeData.filter(r => 
+                (r[1] && String(r[1]).toLowerCase().includes(val)) || 
+                (r[2] && String(r[2]).toLowerCase().includes(val))
             );
 
             suggBox.innerHTML = matches.map(r => `
@@ -98,7 +111,7 @@
         }
 
         function selectUser(id) {
-            const row = fullData.find(r => String(r[1]) === String(id));
+            const row = employeeData.find(r => String(r[1]) === String(id));
             document.getElementById('suggestions').classList.add('hidden');
             document.getElementById('searchInput').value = row[2];
             displayDashboard(row);
@@ -108,39 +121,40 @@
             document.getElementById('dashboardContent').classList.remove('hidden');
             const grid = document.getElementById('cardGrid');
 
-            // Calculation Logic
-            const expiry = new Date(row[6]);
+            // Expiry Logic (Column G is Index 6)
+            const expiryDate = new Date(row[6]);
             const today = new Date();
-            const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+            const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
             
-            let status = { text: 'VALID', color: 'text-green-500', icon: 'fa-circle-check', bg: 'bg-green-50' };
-            if (daysLeft <= 0) status = { text: 'EXPIRED', color: 'text-red-500', icon: 'fa-circle-xmark', bg: 'bg-red-50' };
-            else if (daysLeft <= 30) status = { text: 'EXPIRING SOON', color: 'text-orange-500', icon: 'fa-triangle-exclamation', bg: 'bg-orange-50' };
+            let status = { text: 'VALID', color: 'text-green-600', icon: 'fa-circle-check', bg: 'bg-green-100' };
+            if (diffDays <= 0) status = { text: 'EXPIRED', color: 'text-red-600', icon: 'fa-circle-xmark', bg: 'bg-red-100' };
+            else if (diffDays <= 30) status = { text: 'EXPIRING SOON', color: 'text-orange-600', icon: 'fa-triangle-exclamation', bg: 'bg-orange-100' };
 
+            // Field mapping based on your requirements
             const fields = [
-                { label: 'Position', val: row[3], icon: 'fa-briefcase' },
-                { label: 'Type', val: row[4], icon: 'fa-tags' },
-                { label: 'Issue Date', val: formatDate(row[5]), icon: 'fa-calendar-plus' },
-                { label: 'Expiry Date', val: formatDate(row[6]), icon: 'fa-calendar-xmark' },
-                { label: 'Remaining Days', val: daysLeft, icon: 'fa-clock', highlight: true },
+                { label: 'Position', val: row[3], icon: 'fa-id-badge' },
+                { label: 'Type', val: row[4], icon: 'fa-tag' },
+                { label: 'Issue Date', val: formatDate(row[5]), icon: 'fa-calendar-check' },
+                { label: 'Expiry Date', val: formatDate(row[6]), icon: 'fa-calendar-times' },
+                { label: 'Remaining Days', val: diffDays, icon: 'fa-hourglass-half' },
                 { label: 'Status', val: status.text, status: true },
-                { label: 'Institute', val: row[7], icon: 'fa-building' },
-                { label: 'Renewal Date', val: row[8] || 'N/A', icon: 'fa-arrows-rotate' },
-                { label: 'Certificate', val: row[9], icon: 'fa-file-contract' },
-                { label: 'Emp Status', val: row[10], icon: 'fa-user-tag' },
-                { label: 'Remarks', val: row[11] || 'None', icon: 'fa-comment-dots' },
-                { label: 'Physical Copy', val: row[12], icon: 'fa-hard-drive' }
+                { label: 'Institute', val: row[7], icon: 'fa-university' },
+                { label: 'Renewal Req.', val: formatDate(row[8]), icon: 'fa-rotate' },
+                { label: 'Certificate', val: row[9], icon: 'fa-file-shield' },
+                { label: 'Emp Status', val: row[10], icon: 'fa-user-gear' },
+                { label: 'Remarks', val: row[11] || 'None', icon: 'fa-comment' },
+                { label: 'Physical Copy', val: row[12], icon: 'fa-copy' }
             ];
 
             grid.innerHTML = fields.map(f => `
-                <div class="bg-white p-6 rounded-card soft-shadow border border-gray-50 flex items-center space-x-4">
-                    <div class="w-12 h-12 rounded-xl ${f.status ? status.bg : 'bg-slate-50'} flex items-center justify-center text-xl">
-                        <i class="fa ${f.status ? f.icon || status.icon : f.icon} ${f.status ? status.color : 'text-slate-400'}"></i>
+                <div class="bg-white p-5 rounded-card soft-shadow border border-gray-50">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-10 h-10 rounded-lg ${f.status ? status.bg : 'bg-slate-100'} flex items-center justify-center text-lg">
+                            <i class="fa ${f.status ? status.icon : f.icon} ${f.status ? status.color : 'text-slate-500'}"></i>
+                        </div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${f.label}</p>
                     </div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">${f.label}</p>
-                        <p class="text-lg font-bold ${f.status ? status.color : 'text-slate-700'}">${f.val}</p>
-                    </div>
+                    <p class="text-lg font-bold ${f.status ? status.color : 'text-slate-800'}">${f.val || 'N/A'}</p>
                 </div>
             `).join('');
         }
@@ -154,10 +168,11 @@
         function renderFullTable() {
             const head = document.getElementById('tableHeader');
             const body = document.getElementById('tableBody');
-            head.innerHTML = fullData[0].map(h => `<th class="p-4 font-semibold">${h}</th>`).join('');
-            body.innerHTML = fullData.slice(1).map(row => `
+            // Using Index 1 as headers
+            head.innerHTML = headers.map(h => `<th class="p-4 font-semibold text-xs uppercase tracking-wider">${h || ''}</th>`).join('');
+            body.innerHTML = employeeData.map(row => `
                 <tr class="hover:bg-slate-50 transition-colors">
-                    ${row.map(cell => `<td class="p-4 text-sm border-b border-gray-50">${cell || ''}</td>`).join('')}
+                    ${row.map(cell => `<td class="p-4 text-xs border-b border-gray-50">${cell || ''}</td>`).join('')}
                 </tr>
             `).join('');
         }
@@ -165,12 +180,9 @@
         function togglePage(num) {
             document.getElementById('page1').classList.toggle('hidden', num !== 1);
             document.getElementById('page2').classList.toggle('hidden', num !== 2);
-            document.getElementById('tab1').className = num === 1 ? 'px-8 py-3 navy-gradient text-white rounded-full font-bold soft-shadow transition-all' : 'px-8 py-3 bg-white text-slate-600 rounded-full font-bold soft-shadow border border-gray-100';
-            document.getElementById('tab2').className = num === 2 ? 'px-8 py-3 navy-gradient text-white rounded-full font-bold soft-shadow transition-all' : 'px-8 py-3 bg-white text-slate-600 rounded-full font-bold soft-shadow border border-gray-100';
         }
 
         window.onload = fetchExcel;
     </script>
 </body>
 </html>
-
