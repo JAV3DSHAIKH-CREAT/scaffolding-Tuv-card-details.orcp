@@ -3,197 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TUV Dashboard | Live Sync</title>
+    <title>TUV Training Monitor | Professional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 1.25rem;
-        }
+        :root { --glass: rgba(30, 41, 59, 0.7); --border: rgba(255, 255, 255, 0.1); }
+        body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; overflow-x: hidden; }
+        .glass-card { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; transition: 0.3s ease; }
+        .nav-active { background: #3b82f6; color: white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
         .status-valid { color: #4ade80; border: 1px solid #4ade80; background: rgba(74, 222, 128, 0.1); }
         .status-warning { color: #fbbf24; border: 1px solid #fbbf24; background: rgba(251, 191, 36, 0.1); }
         .status-expired { color: #f87171; border: 1px solid #f87171; background: rgba(248, 113, 113, 0.1); }
-        #searchDropdown div:hover { background: rgba(59, 130, 246, 0.2); }
-        .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        input, select, textarea { background: rgba(15, 23, 42, 0.5) !important; border: 1px solid #334155 !important; color: white !important; outline: none; transition: 0.2s; }
+        input:focus { border-color: #3b82f6 !important; ring: 2px #3b82f6; }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
 <div class="max-w-6xl mx-auto">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
         <div>
-            <h1 class="text-2xl font-bold text-white tracking-tight">TUV Training Monitor</h1>
+            <h1 class="text-3xl font-bold tracking-tight text-white">TUV <span class="text-blue-500">Monitor</span></h1>
             <p id="syncStatus" class="text-slate-400 text-sm flex items-center gap-2">
-                <span class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span> Connecting to GitHub...
+                <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Initializing...
             </p>
         </div>
-        <div class="bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700">
-            <p class="text-xs text-slate-500 uppercase font-bold">Data Source</p>
-            <p class="text-sm font-mono text-blue-400">Sheet: ACTIVE</p>
-        </div>
-    </div>
+        <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-2xl border border-slate-700">
+            <button onclick="switchPage('dashboard')" id="nav-dash" class="px-6 py-2 rounded-xl text-sm font-semibold transition nav-active">Dashboard</button>
+            <button onclick="switchPage('update')" id="nav-update" class="px-6 py-2 rounded-xl text-sm font-semibold transition text-slate-400">Update Data</button>
+        </nav>
+    </header>
 
-    <div class="relative mb-10">
-        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <i class="fa-solid fa-magnifying-glass text-slate-500"></i>
+    <main id="page-dashboard" class="space-y-8">
+        <div class="relative group">
+            <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                <i class="fa-solid fa-magnifying-glass text-slate-500 group-focus-within:text-blue-500 transition"></i>
+            </div>
+            <input type="text" id="mainSearch" 
+                class="w-full py-5 pl-14 pr-6 rounded-2xl text-lg shadow-2xl"
+                placeholder="Search Employee Name or ID Number..." oninput="handleSearch()">
+            <div id="searchDropdown" class="absolute w-full mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 hidden max-h-72 overflow-y-auto"></div>
         </div>
-        <input type="text" id="mainSearch" 
-            class="w-full bg-slate-800/40 border border-slate-700 text-white rounded-xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-            placeholder="Start typing Name or ID..." oninput="handleSearch()">
-        <div id="searchDropdown" class="absolute w-full mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 hidden max-h-60 overflow-y-auto"></div>
-    </div>
 
-    <div id="dashboardArea" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <div class="col-span-full py-20 text-center glass-card">
-            <div id="loadingIcon" class="loader w-10 h-10 border-4 border-slate-700 rounded-full mx-auto mb-4"></div>
-            <p id="displayText" class="text-slate-500">Loading your TUV Training Log...</p>
+        <div id="dashboardContent" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            <div class="col-span-full py-32 text-center glass-card border-dashed">
+                <i class="fa-solid fa-id-badge text-6xl text-slate-700 mb-4"></i>
+                <p class="text-slate-500 text-lg">Select an employee from search to view cards</p>
+            </div>
         </div>
-    </div>
+    </main>
 
-    <footer class="mt-16 py-6 border-t border-slate-800 text-center">
+    <main id="page-update" class="hidden">
+        <div class="glass-card p-8 max-w-3xl mx-auto">
+            <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                <i class="fa-solid fa-pen-to-square text-blue-500"></i> Update Record
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Employee Name</label>
+                    <input type="text" id="upd-name" class="w-full p-3 rounded-xl opacity-60" readonly>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Issue Date</label>
+                    <input type="date" id="upd-issue" class="w-full p-3 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Expiry Date</label>
+                    <input type="date" id="upd-expiry" class="w-full p-3 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Renewal Request Date</label>
+                    <input type="date" id="upd-renewal" class="w-full p-3 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Physical Copy</label>
+                    <select id="upd-copy" class="w-full p-3 rounded-xl">
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Remarks</label>
+                    <textarea id="upd-remarks" rows="3" class="w-full p-3 rounded-xl"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-4 mt-10">
+                <button onclick="saveData()" class="flex-1 bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> Update Entry
+                </button>
+                <button onclick="resetForm()" class="px-8 bg-slate-700 hover:bg-slate-600 py-4 rounded-xl font-bold transition">Clear</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-20 py-8 border-t border-slate-800 text-center">
         <p class="text-slate-500 text-xs tracking-widest uppercase">Created by <span class="text-white font-bold">Mohammad Javed Shaikh</span></p>
     </footer>
 </div>
 
 <script>
-    // --- CONFIGURATION ---
-    const GITHUB_USERNAME = 'YOUR_GITHUB_USER'; // Change this
-    const REPO_NAME = 'TUV-Training-Log';       // Change this
-    const FILE_NAME = 'TUV Training Log.xlsm';
-    const EXCEL_URL = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${encodeURIComponent(FILE_NAME)}`;
+    // --- SETTINGS (REPLACE THESE) ---
+    const USER = 'YOUR_GITHUB_USERNAME'; 
+    const REPO = 'TUV-Training-Log';
+    const FILE = 'TUV Training Log.xlsm';
+    const RAW_URL = `https://raw.githubusercontent.com/${USER}/${REPO}/main/${encodeURIComponent(FILE)}`;
 
-    let masterData = [];
+    let activeData = [];
+    let currentEmployee = null;
 
-    // --- INITIALIZE: FETCH DATA ---
     async function init() {
+        const status = document.getElementById('syncStatus');
         try {
-            const response = await fetch(EXCEL_URL);
-            if (!response.ok) throw new Error("File not found on GitHub");
-            
-            const arrayBuffer = await response.arrayBuffer();
-            const data = new Uint8Array(arrayBuffer);
-            const workbook = XLSX.read(data, { type: 'array' });
-            
-            const sheetName = "ACTIVE";
-            const worksheet = workbook.Sheets[sheetName];
-            if (!worksheet) throw new Error(`Sheet '${sheetName}' not found`);
-
-            // Convert to JSON (Headers are in Row 1)
-            masterData = XLSX.utils.sheet_to_json(worksheet);
-            
-            document.getElementById('syncStatus').innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full"></span> Live Sync Active`;
-            document.getElementById('loadingIcon').classList.add('hidden');
-            document.getElementById('displayText').innerText = "System Ready. Search above to begin.";
-        } catch (err) {
-            document.getElementById('syncStatus').innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Connection Failed`;
-            document.getElementById('displayText').innerText = "Error: " + err.message;
+            const res = await fetch(RAW_URL);
+            if (!res.ok) throw new Error("Check GitHub Username/Repo/Filename Case");
+            const buf = await res.arrayBuffer();
+            const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+            activeData = XLSX.utils.sheet_to_json(wb.Sheets["ACTIVE"]);
+            status.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full"></span> Live: ACTIVE Sheet Connected`;
+        } catch (e) {
+            status.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Error: ${e.message}`;
         }
     }
 
     function handleSearch() {
-        const input = document.getElementById('mainSearch').value.toLowerCase();
-        const dropdown = document.getElementById('searchDropdown');
-        dropdown.innerHTML = '';
+        const val = document.getElementById('mainSearch').value.toLowerCase();
+        const dd = document.getElementById('searchDropdown');
+        dd.innerHTML = '';
+        if (val.length < 1) return dd.classList.add('hidden');
 
-        if (input.length < 1) { dropdown.classList.add('hidden'); return; }
-
-        // Filter based on Column B (Name) and C (ID) - Keys depend on Excel Header Names
-        // Adjust these keys (e.g., 'Name', 'ID') to match your Excel exactly
-        const results = masterData.filter(item => {
-            const name = String(item[Object.keys(item)[1]] || "").toLowerCase(); // Column B
-            const id = String(item[Object.keys(item)[2]] || "").toLowerCase();   // Column C
-            return name.includes(input) || id.includes(input);
+        const filtered = activeData.filter(r => {
+            const name = String(r[Object.keys(r)[1]] || "").toLowerCase();
+            const id = String(r[Object.keys(r)[2]] || "").toLowerCase();
+            return name.includes(val) || id.includes(val);
         });
 
-        if (results.length > 0) {
-            dropdown.classList.remove('hidden');
-            results.slice(0, 10).forEach(res => {
-                const name = res[Object.keys(res)[1]];
-                const id = res[Object.keys(res)[2]];
-                const div = document.createElement('div');
-                div.className = 'p-3 cursor-pointer text-sm border-b border-slate-800 flex justify-between';
-                div.innerHTML = `<span>${name}</span> <span class="text-blue-500 font-mono">${id}</span>`;
-                div.onclick = () => renderDashboard(res);
-                dropdown.appendChild(div);
+        if (filtered.length > 0) {
+            dd.classList.remove('hidden');
+            filtered.slice(0, 8).forEach(row => {
+                const item = document.createElement('div');
+                item.className = 'p-4 hover:bg-blue-600/20 cursor-pointer flex justify-between border-b border-slate-800';
+                item.innerHTML = `<span>${row[Object.keys(row)[1]]}</span><span class="text-blue-400 font-mono text-sm">${row[Object.keys(row)[2]]}</span>`;
+                item.onclick = () => selectEmployee(row);
+                dd.appendChild(item);
             });
         }
     }
 
-    function renderDashboard(row) {
-        document.getElementById('searchDropdown').classList.add('hidden');
+    function selectEmployee(row) {
+        currentEmployee = row;
         const keys = Object.keys(row);
+        document.getElementById('searchDropdown').classList.add('hidden');
+        document.getElementById('mainSearch').value = row[keys[1]];
         
-        // Logical Mappings based on your description
-        const val = (index) => row[keys[index]] || "---";
-        const expiryDate = val(6); // Column G
-        const statusObj = calculateStatus(expiryDate);
-
-        const container = document.getElementById('dashboardArea');
-        container.innerHTML = `
-            <div class="col-span-full glass-card p-6 flex justify-between items-center border-l-4 border-blue-500">
-                <div>
-                    <h2 class="text-3xl font-bold">${val(1)}</h2>
-                    <p class="text-slate-400">${val(3)} | ${val(2)}</p>
+        // Render Dashboard
+        const expiry = row[keys[6]];
+        const stat = getStatus(expiry);
+        
+        document.getElementById('dashboardContent').innerHTML = `
+            <div class="col-span-full glass-card p-8 flex flex-col md:flex-row justify-between items-center gap-6 border-l-8 border-blue-500">
+                <div class="text-center md:text-left">
+                    <h2 class="text-4xl font-bold text-white">${row[keys[1]]}</h2>
+                    <p class="text-blue-400 text-lg font-medium">${row[keys[3]]} | ${row[keys[2]]}</p>
                 </div>
-                <div class="px-6 py-3 rounded-xl flex items-center gap-3 ${statusObj.class}">
-                    <i class="fa-solid ${statusObj.icon} text-xl"></i>
-                    <div>
-                        <p class="text-[10px] uppercase font-bold opacity-70">Status</p>
-                        <p class="font-bold">${statusObj.label}</p>
-                    </div>
+                <div class="px-8 py-4 rounded-2xl flex items-center gap-4 ${stat.class}">
+                    <i class="fa-solid ${stat.icon} text-3xl"></i>
+                    <div><p class="text-xs uppercase font-bold opacity-70">Card Status</p><p class="text-2xl font-black">${stat.label}</p></div>
                 </div>
             </div>
-
-            ${infoCard("Training Type", val(4), "fa-shield-halved")}
-            ${infoCard("Remaining Days", statusObj.days, "fa-hourglass-half", statusObj.days < 30 ? 'text-red-400' : '')}
-            ${infoCard("Issue Date", val(5), "fa-calendar-plus")}
-            ${infoCard("Expiry Date", val(6), "fa-calendar-minus")}
-            ${infoCard("Institute", val(7), "fa-building-columns")}
-            ${infoCard("Certificate", val(9), "fa-certificate")}
-            ${infoCard("Physical Copy", val(12), "fa-file-invoice")}
-            ${infoCard("Emp Status", val(10), "fa-user-check")}
-            
-            <div class="col-span-full md:col-span-2 glass-card p-5">
+            ${card("Training Type", row[keys[4]], "fa-tag")}
+            ${card("Remaining Days", stat.days, "fa-clock", stat.days < 30 ? 'text-red-400' : '')}
+            ${card("Issue Date", row[keys[5]], "fa-calendar-check")}
+            ${card("Expiry Date", row[keys[6]], "fa-calendar-xmark")}
+            ${card("Institute", row[keys[7]], "fa-building")}
+            ${card("Certificate", row[keys[9]], "fa-certificate")}
+            ${card("Physical Copy", row[keys[12]], "fa-file-invoice")}
+            ${card("Emp Status", row[keys[10]], "fa-user-gear")}
+            <div class="col-span-full md:col-span-2 glass-card p-6">
                 <p class="text-xs font-bold text-slate-500 uppercase mb-2">Remarks</p>
-                <p class="text-slate-200">${val(11)}</p>
+                <p class="text-white">${row[keys[11]] || 'None'}</p>
             </div>
-            <div class="col-span-full md:col-span-2 glass-card p-5">
-                <p class="text-xs font-bold text-slate-500 uppercase mb-2">Renewal Request Date</p>
-                <p class="text-slate-200">${val(8)}</p>
-            </div>
-        `;
-    }
-
-    function infoCard(label, value, icon, extra = "") {
-        return `
-            <div class="glass-card p-5 flex items-center gap-4">
-                <div class="text-blue-500 bg-blue-500/10 p-3 rounded-lg"><i class="fa-solid ${icon}"></i></div>
-                <div>
-                    <p class="text-[10px] font-bold text-slate-500 uppercase">${label}</p>
-                    <p class="text-sm font-semibold ${extra}">${value}</p>
-                </div>
+            <div class="col-span-full md:col-span-2 glass-card p-6">
+                <p class="text-xs font-bold text-slate-500 uppercase mb-2">Renewal Details</p>
+                <p class="text-white">Requested on: ${row[keys[8]] || 'No request active'}</p>
             </div>
         `;
+
+        // Fill Update Form
+        document.getElementById('upd-name').value = row[keys[1]];
+        document.getElementById('upd-issue').value = row[keys[5]];
+        document.getElementById('upd-expiry').value = row[keys[6]];
+        document.getElementById('upd-remarks').value = row[keys[11]];
     }
 
-    function calculateStatus(dateStr) {
-        if (!dateStr || dateStr === "---") return { label: 'Unknown', class: '', icon: 'fa-question', days: 0 };
-        const expiry = new Date(dateStr);
-        const today = new Date();
-        const diff = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-        
-        if (diff <= 0) return { label: 'Expired', class: 'status-expired', icon: 'fa-circle-xmark', days: diff };
-        if (diff <= 60) return { label: 'Expiring Soon', class: 'status-warning', icon: 'fa-triangle-exclamation', days: diff };
-        return { label: 'Valid', class: 'status-valid', icon: 'fa-circle-check', days: diff };
+    function card(lbl, val, icon, cls="") {
+        return `<div class="glass-card p-6 flex items-center gap-4">
+            <div class="bg-blue-500/10 p-3 rounded-xl text-blue-500"><i class="fa-solid ${icon} text-xl"></i></div>
+            <div><p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">${lbl}</p><p class="text-lg font-bold ${cls}">${val || '---'}</p></div>
+        </div>`;
     }
+
+    function getStatus(exp) {
+        if (!exp) return { label: 'No Data', class: 'status-expired', icon: 'fa-question', days: 0 };
+        const days = Math.ceil((new Date(exp) - new Date()) / 86400000);
+        if (days <= 0) return { label: 'EXPIRED', class: 'status-expired', icon: 'fa-circle-xmark', days };
+        if (days <= 60) return { label: 'EXPIRING', class: 'status-warning', icon: 'fa-triangle-exclamation', days };
+        return { label: 'VALID', class: 'status-valid', icon: 'fa-circle-check', days };
+    }
+
+    function switchPage(p) {
+        document.getElementById('page-dashboard').classList.toggle('hidden', p !== 'dashboard');
+        document.getElementById('page-update').classList.toggle('hidden', p !== 'update');
+        document.getElementById('nav-dash').classList.toggle('nav-active', p === 'dashboard');
+        document.getElementById('nav-update').classList.toggle('nav-active', p === 'update');
+    }
+
+    function saveData() {
+        if (!currentEmployee) return alert("Please select an employee first!");
+        alert("RECORD PREPARED: Since GitHub is read-only, please save this data in your local Excel file. Feature to auto-update GitHub requires a Secure API key.");
+    }
+
+    function resetForm() { document.querySelectorAll('#page-update input, #page-update textarea').forEach(i => i.value = ''); }
 
     init();
 </script>
