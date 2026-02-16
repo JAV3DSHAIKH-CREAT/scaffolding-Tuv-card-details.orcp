@@ -21,15 +21,12 @@
         padding: 10px;
     }
 
-    /* UPDATED: Page 1 Header Style */
+    /* MINOR CHANGE: Bigger, Bold, Blue Header */
     h1 {
         text-align: center;
-        color: #1e3a8a; /* Deep Blue */
-        font-size: 36px; /* Bigger font */
-        font-weight: 700; /* Bold */
-        margin-bottom: 30px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        color: #1e3a8a; 
+        font-size: 42px; /* Increased size */
+        font-weight: 900; /* Extra Bold */
     }
 
     .search-box {
@@ -65,7 +62,7 @@
         background: #f0f0f0;
     }
 
-    /* Cards */
+    /* Cards - SAME LOOK */
     .dashboard {
         display: flex;
         flex-wrap: wrap;
@@ -99,33 +96,26 @@
         margin-right: 5px;
     }
 
-    /* UPDATED: Page 2 Table - Fit to Size */
+    /* PAGE 2 Table - MINOR CHANGE: Fit to Size */
     #page2 {
-        overflow-x: auto; /* Adds scrollbar if table is too wide for mobile */
-        padding-bottom: 20px;
+        width: 100%;
+        overflow-x: auto; /* Ensures it fits the screen width */
     }
     #page2 table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
-        background-color: white;
-        table-layout: auto; /* Adjusts column width based on content */
-        font-size: 14px; /* Slightly smaller to help fit more data */
+        table-layout: auto; /* Content determines width */
     }
     #page2 th, #page2 td {
         border: 1px solid #ccc;
-        padding: 12px 8px;
+        padding: 10px;
         text-align: center;
-        white-space: nowrap; /* Prevents text wrapping to keep table neat */
+        font-size: 13px; /* Slightly smaller to fit better */
     }
     #page2 th {
         background: #1e3a8a;
         color: #fff;
-        position: sticky;
-        top: 0;
-    }
-    #page2 tr:nth-child(even) {
-        background-color: #f9fafb;
     }
 
     .nav-buttons {
@@ -142,7 +132,6 @@
         font-weight: bold;
         border-radius: 10px;
         cursor: pointer;
-        transition: background 0.3s;
     }
     button:hover {
         background: #3b5fd1;
@@ -180,11 +169,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-const excelUrl = 'https://raw.githubusercontent.com/YourUsername/YourRepo/main/TUV_Training.xlsx'; // <-- Replace with your raw GitHub URL
+const excelUrl = 'https://raw.githubusercontent.com/YourUsername/YourRepo/main/TUV_Training.xlsx'; 
 let data = [];
 let combinedSearch = [];
 
-// Fetch Excel from GitHub
 fetch(excelUrl)
     .then(res => res.arrayBuffer())
     .then(ab => {
@@ -244,7 +232,7 @@ function populateCards(row) {
         {title:'TYPE', value: row['E']},
         {title:'ISSUE DATE', value: row['F']},
         {title:'EXPIRY DATE', value: row['G']},
-        {title:'Remaining Days', value: isNaN(remainingDays) ? 'N/A' : remainingDays},
+        {title:'Remaining Days', value: remainingDays},
         {title:'Status', value: `<span class="status-icon" style="background:${color}"></span>${status}`},
         {title:'Institute Name', value: row['H']},
         {title:'Requested for Renewal Date', value: row['I']},
